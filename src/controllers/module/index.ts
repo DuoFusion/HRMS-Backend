@@ -79,13 +79,13 @@ export const get_all_module = async (req, res) => {
                 { name: { $regex: search, $options: 'si' } },
             ];
         }
-
+        limit = parseInt(limit)
         match.isBlocked = activeFilter ? activeFilter : false;
         let response = await aggregateData(moduleModel, [
             { $match: match },
             {
                 $lookup: {
-                    from: "tabmasters",
+                    from: "modules",
                     let: { tabId: '$parentId' },
                     pipeline: [
                         {
@@ -122,7 +122,7 @@ export const get_all_module = async (req, res) => {
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('module'), {
             module_data: response[0].data.sort((a, b) => a.number - b.number),
-            totalData: response[0].data_count,
+            totalData: response[0].data_count[0].count || 0,
             state: {
                 page: page as number,
                 limit: limit as number,

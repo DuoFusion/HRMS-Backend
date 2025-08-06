@@ -15,7 +15,7 @@ const userSchema: any = new mongoose.Schema({
     profilePhoto: { type: String, default: null },
     isEmailVerified: { type: Boolean, default: false },
     otp: { type: Number },
-    otpExpireTime: { type: Date },
+    otpExpireTime: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     lastLoginAt: { type: Date, default: null },

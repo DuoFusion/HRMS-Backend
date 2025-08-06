@@ -7,7 +7,7 @@ const permissionSchema = new mongoose.Schema({
     add: { type: Boolean, default: false },
     edit: { type: Boolean, default: false },
     delete: { type: Boolean, default: false },
-    isDeleted: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: false },
 }, { timestamps: true, versionKey: false })
 
 export const permissionModel = mongoose.model('permission', permissionSchema);  

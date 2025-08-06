@@ -9,8 +9,7 @@ const moduleSchema: any = new mongoose.Schema({
     hasAdd: { type: Boolean, default: false },
     hasEdit: { type: Boolean, default: false },
     hasDelete: { type: Boolean, default: false },
-    isDeleted: { type: Boolean, default: false },
-    isBlocked: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
     parentId: { type: mongoose.Schema.Types.ObjectId, default: null, ref: "module" },
 }, { timestamps: true, versionKey: false })
 
