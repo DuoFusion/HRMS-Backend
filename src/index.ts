@@ -1,0 +1,49 @@
+"use strict"
+/**
+ * @author Pramit Mangukiya
+ * @description Server and REST API config
+ */
+import * as bodyParser from 'body-parser';
+import express, { Request, Response } from 'express';
+import http from 'http';
+import cors from 'cors'
+import { mongooseConnection } from './database'
+import * as packageInfo from '../package.json'
+import { router } from './Routes'
+import { seedAdminUser } from './utils/seedAdmin'
+
+const app = express();
+
+app.use(cors())
+app.use(mongooseConnection)
+app.use(bodyParser.json({ limit: '200mb' }))
+app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }))
+
+const health = (req: Request, res: Response) => {
+    return res.status(200).json({
+        success: true,
+        message: `HRMS Backend Server is Running`,
+        app: packageInfo.name,
+        version: packageInfo.version,
+        description: packageInfo.description,
+        author: packageInfo.author,
+        license: packageInfo.license,
+        timestamp: new Date().toISOString()
+    })
+}
+
+const bad_gateway = (req: Request, res: Response) => { return res.status(502).json({ success: false, message: "HRMS Backend API Bad Gateway" }) }
+
+app.get('/', health);
+app.get('/health', health);
+app.get('/isServerUp', (req: Request, res: Response) => {
+    res.send('Server is running ');
+});
+
+app.use(router)
+app.use('*', bad_gateway);
+
+let server = new http.Server(app);
+
+seedAdminUser();
+export default server;
