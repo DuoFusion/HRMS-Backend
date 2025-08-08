@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../../../config';
 import { apiResponse, getUniqueOtp, ROLES } from '../../common';
 import { createData, email_verification_mail, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
-import { userModel } from '../../database';
+import { moduleModel, permissionModel, roleModel, userModel } from '../../database';
 import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordSchema } from '../../validation';
 
 const ObjectId = require("mongoose").Types.ObjectId
@@ -67,7 +67,50 @@ export const login = async (req, res) => {
             role: user.role,
         };
 
-        return res.status(200).json(new apiResponse(200, 'Login successful', { user: userResponse, token }, {}));
+        let roleData = await roleModel.aggregate([
+            {
+                $match: {
+                    $expr: {
+                        $eq: [
+                            { $toUpper: "$name" },
+                            String(user.role).toUpperCase(),
+                        ],
+                    },
+                },
+            },
+        ]);
+        roleData = roleData[0];
+        let moduleData = [];
+        moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();
+        let response = { ...userResponse, roleData, moduleData }
+        console.log("response", response);
+        if (response.roleData._id) {
+            let newRoleDetailData = [],
+                newRoleDetailObj: any = {};
+            const roleDetailData = await permissionModel.find({ roleId: new ObjectId(response.roleData._id) });
+            if (roleDetailData && roleDetailData.length > 0) {
+                moduleData.forEach((item) => {
+                    let roleDetail = roleDetailData?.find(
+                        (item2) =>
+                            item2.roleId.toString() === response.roleData._id.toString() &&
+                            item2.moduleId.toString() === item._id.toString(),
+                    );
+                    newRoleDetailObj = {
+                        hasView: roleDetail?.view || false,
+                        hasAdd: roleDetail?.add || false,
+                        hasEdit: roleDetail?.edit || false,
+                        hasDelete: roleDetail?.delete || false,
+                    };
+
+                    newRoleDetailData.push({
+                        ...item,
+                        ...newRoleDetailObj,
+                    });
+                });
+            }
+            moduleData = newRoleDetailData;
+        }
+        return res.status(200).json(new apiResponse(200, 'Login successful', { ...response, moduleData, token }, {}));
 
     } catch (error) {
         console.log('Login error:', error);
