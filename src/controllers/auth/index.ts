@@ -83,7 +83,6 @@ export const login = async (req, res) => {
         let moduleData = [];
         moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();
         let response = { ...userResponse, roleData, moduleData }
-        console.log("response", response);
         if (response.roleData._id) {
             let newRoleDetailData = [],
                 newRoleDetailObj: any = {};
