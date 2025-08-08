@@ -12,6 +12,12 @@ export const add_module = async (req, res) => {
         let isExist = await getFirstMatch(moduleModel, { tabName: body.tabName }, {}, {});
         if (isExist) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("name"), {}, {}));
 
+        if (body.tabName && isExist?.tabName !== body.tabName) {
+            let getAllModuleData = await getData(moduleModel, {}, {}, {});
+            let isNameExist = getAllModuleData?.find(item => item.tabName === body.tabName);
+            if (isNameExist) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("module name"), {}, {}));
+        }
+
         if (body.number && isExist?.number !== body.number) {
             let isNumberExist = await getData(moduleModel, { number: body.number }, {}, {});
             if (isNumberExist?.length > 0) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("tab number"), {}, {}));

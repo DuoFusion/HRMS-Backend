@@ -12,14 +12,14 @@ export const edit_permission_by_id = async (req, res) => {
         for (let roleDetails of modules) {
             let updateData = {
                 moduleId: new ObjectId(roleDetails._id),
-                view: roleDetails.view,
                 add: roleDetails.add,
                 edit: roleDetails.edit,
+                view: roleDetails.view,
                 delete: roleDetails.delete,
                 isActive: roleDetails.isActive
             }
 
-            let updateRoleDetails = await permissionModel.findOneAndUpdate({ roleId: ObjectId(roleId), moduleId: ObjectId(roleDetails._id) }, updateData, { upsert: true, new: true });
+            let updateRoleDetails = await permissionModel.findOneAndUpdate({ roleId: new ObjectId(roleId), moduleId: new ObjectId(roleDetails._id) }, updateData, { upsert: true, new: true });
             updatedRoleDetails.push(updateRoleDetails);
         }
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("role details"), updatedRoleDetails, {}))
@@ -29,10 +29,10 @@ export const edit_permission_by_id = async (req, res) => {
     }
 }
 
-export const get_role_details_by_roleId = async (req, res) => {
+export const get_permission_by_roleId = async (req, res) => {
     let { roleId, search } = req.body, match: any = {};
     try {
-        let roleDetailData = await permissionModel.find({ roleId: ObjectId(roleId) });
+        let roleDetailData = await permissionModel.find({ roleId: new ObjectId(roleId) });
         if (!roleDetailData) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("role details"), {}, {}));
 
         if (search) {
@@ -59,11 +59,10 @@ export const get_role_details_by_roleId = async (req, res) => {
                 $unwind: { path: "$modules", preserveNullAndEmptyArrays: true }
             },
         ])
-
         let newRoleDetailData = [];
         moduleData?.forEach(item => {
             let newObj = {
-                parentTab: item.parentId !== null ? item.parentTab[0] : {},
+                parentTab: item.modules !== null ? item.modules : {},
                 view: false,
                 add: false,
                 edit: false,
@@ -71,7 +70,7 @@ export const get_role_details_by_roleId = async (req, res) => {
                 isActive: false
             };
 
-            let roleDetail = roleDetailData?.find(item2 => item2.roleId.toString() == roleId.toString() && item2.tabId.toString() == item._id.toString() && item.isActive == true);
+            let roleDetail = roleDetailData?.find(item2 => item2.roleId.toString() == roleId.toString() && item2.moduleId.toString() == item._id.toString() && item.isActive == true);
             if (roleDetail) {
                 newObj.view = roleDetail.view;
                 newObj.add = roleDetail.add;
