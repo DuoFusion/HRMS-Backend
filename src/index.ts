@@ -46,4 +46,5 @@ app.use('*', bad_gateway);
 let server = new http.Server(app);
 
 seedAdminUser();
+
 export default server;
