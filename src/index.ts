@@ -5,10 +5,10 @@ import cors from 'cors'
 import { mongooseConnection } from './database'
 import * as packageInfo from '../package.json'
 import { router } from './Routes'
-import { seedAdminUser } from './utils/seedAdmin'
 import fs from 'fs'
 import path from 'path'
 import multer from 'multer';
+import { seedAdminUser } from './helper'
 const app = express();
 
 app.use("/images", express.static(path.join(__dirname, "..", "..", "uploads")));

@@ -29,7 +29,6 @@ const userSchema: any = new mongoose.Schema({
     position: { type: String },
     department: { type: String },
     designation: { type: String },
-    contactNumber: { type: String },
     profilePhoto: { type: String, default: null },
     isEmailVerified: { type: Boolean, default: false },
     otp: { type: Number },

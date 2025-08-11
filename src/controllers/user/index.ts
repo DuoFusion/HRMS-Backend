@@ -2,34 +2,38 @@ import bcrypt from 'bcryptjs';
 import { apiResponse, ROLES } from '../../common';
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { roleModel, userModel } from '../../database';
+import { addUserSchema, deleteUserSchema, getAllUsersSchema, getUserSchema } from '../../validation';
 const ObjectId = require("mongoose").Types.ObjectId
 
 export const add_user = async (req, res) => {
     reqInfo(req)
-    let body = req.body;
     try {
-        let isExist = await getFirstMatch(userModel, { email: body.email, isDeleted: false }, {}, {});
+
+        const { error, value } = addUserSchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        let isExist = await getFirstMatch(userModel, { email: value.email, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("email"), {}, {}));
 
-        isExist = await getFirstMatch(userModel, { phoneNumber: body.phoneNumber, isDeleted: false }, {}, {});
+        isExist = await getFirstMatch(userModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("phone number"), {}, {}));
 
-        body.fullName = body.firstName + " " + body.lastName
+        value.fullName = value.firstName + " " + value.lastName
 
-        if (body.role) {
-            let role = await getFirstMatch(roleModel, { role: body.role, isDeleted: false }, {}, {});
+        if (value.role) {
+            let role = await getFirstMatch(roleModel, { role: value.role, isDeleted: false }, {}, {});
             if (!role) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("role"), {}, {}));
-            body.roleId = new ObjectId(role._id)
+            value.roleId = new ObjectId(role._id)
         }
 
-        if (body.password) {
-            body.displayPassword = body.password
+        if (value.password) {
+            value.displayPassword = value.password
             const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(body.password, saltRounds);
-            body.password = hashedPassword
+            const hashedPassword = await bcrypt.hash(value.password, saltRounds);
+            value.password = hashedPassword
         }
 
-        const response = await createData(userModel, body);
+        const response = await createData(userModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
         return res.status(200).json(new apiResponse(200, "User created successfully", response, {}));
 
@@ -41,43 +45,45 @@ export const add_user = async (req, res) => {
 
 export const edit_user_by_id = async (req, res) => {
     reqInfo(req)
-    let body = req.body;
     try {
-        let isExist = await getFirstMatch(userModel, { _id: new ObjectId(body.userId), isDeleted: false }, {}, {});
+        const { error, value } = addUserSchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        let isExist = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, {}, {});
         if (!isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("user"), {}, {}));
 
-        isExist = await getFirstMatch(userModel, { email: body.email, isDeleted: false, _id: { $ne: new ObjectId(body.userId) } }, {}, {});
+        isExist = await getFirstMatch(userModel, { email: value.email, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("email"), {}, {}));
 
-        isExist = await getFirstMatch(userModel, { phoneNumber: body.phoneNumber, isDeleted: false, _id: { $ne: new ObjectId(body.userId) } }, {}, {});
+        isExist = await getFirstMatch(userModel, { phoneNumber: value.phoneNumber, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("phone number"), {}, {}));
 
-        if (body.password) {
-            body.displayPassword = body.password
+        if (value.password) {
+            value.displayPassword = value.password
             const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(body.password, saltRounds);
-            body.password = hashedPassword
+            const hashedPassword = await bcrypt.hash(value.password, saltRounds);
+            value.password = hashedPassword
         }
 
-        if (body.role) {
-            let role = await getFirstMatch(roleModel, { role: body.role, isDeleted: false }, {}, {});
+        if (value.role) {
+            let role = await getFirstMatch(roleModel, { role: value.role, isDeleted: false }, {}, {});
             if (!role) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("role"), {}, {}));
-            body.roleId = new ObjectId(role._id)
-        }
-        
-        if (body.firstName) {
-            body.fullName = body.firstName + " " + isExist.lastName
+            value.roleId = new ObjectId(role._id)
         }
 
-        if (body.lastName) {
-            body.fullName = isExist.firstName + " " + body.lastName
+        if (value.firstName) {
+            value.fullName = value.firstName + " " + isExist.lastName
         }
 
-        if(body.firstName && body.lastName) {
-            body.fullName = body.firstName + " " + body.lastName
+        if (value.lastName) {
+            value.fullName = isExist.firstName + " " + value.lastName
         }
 
-        const response = await updateData(userModel, { _id: new ObjectId(body.userId), isDeleted: false }, { isDeleted: true });
+        if (value.firstName && value.lastName) {
+            value.fullName = value.firstName + " " + value.lastName
+        }
+
+        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, { isDeleted: true });
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("user"), response, {}));
     } catch (error) {
         console.log(error);
@@ -86,10 +92,12 @@ export const edit_user_by_id = async (req, res) => {
 };
 
 export const delete_user_by_id = async (req, res) => {
-    reqInfo(req);
-    const { id } = req.params;
+    reqInfo(req)
     try {
-        const response = await updateData(userModel, { _id: new ObjectId(id), isDeleted: false }, { isDeleted: true });
+        const { error, value } = deleteUserSchema.validate(req.params)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const response = await updateData(userModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true });
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("Delete"), {}, {}));
     } catch (error) {
@@ -100,8 +108,12 @@ export const delete_user_by_id = async (req, res) => {
 
 export const get_all_users = async (req, res) => {
     reqInfo(req)
-    let criteria: any = { isDeleted: false }, options: any = {}, { page = 1, limit = 10, roleFilter, activeFilter, search } = req.query;
     try {
+        const { error, value } = getAllUsersSchema.validate(req.query)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        let criteria: any = { isDeleted: false }, options: any = {}, { page = 1, limit = 10, roleFilter, activeFilter, search } = value;
+
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
@@ -146,9 +158,11 @@ export const get_all_users = async (req, res) => {
 
 export const getUserById = async (req, res) => {
     reqInfo(req)
-    let { id } = req.params
     try {
-        const response = await getFirstMatch(userModel, { _id: new ObjectId(id), isDeleted: false }, '-password', {})
+        const { error, value } = getUserSchema.validate(req.params)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const response = await getFirstMatch(userModel, { _id: new ObjectId(value.id), isDeleted: false }, '-password', {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("user"), response, {}));
     } catch (error) {
