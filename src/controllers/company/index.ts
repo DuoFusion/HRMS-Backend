@@ -90,7 +90,7 @@ export const updateUser = async (req, res) => {
         const { id } = req.body;
         const updatedUser = await companyModel.findOneAndUpdate({ _id: new ObjectId(id), isDeleted: false }, body, { new: true });
         if (!updatedUser) {
-            return res.status(404).json(new apiResponse(404, responseMessage.updateDataError("latestNews"), {}, {}))
+            return res.status(404).json(new apiResponse(404, responseMessage.updateDataError("latestUpdate"), {}, {}))
         }
         return res.status(200).json(new apiResponse(200, responseMessage.updateDataSuccess("news is updated"), updatedUser, {}))
     } catch (error) {
