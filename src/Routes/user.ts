@@ -6,15 +6,10 @@ import { ROLES } from '../common';
 const router = Router();
 
 router.use(adminJWT);
-router.post('/add', userController.AddUsers)
-router.get('/get', userController.getAllUsers);
-router.delete('/:id', userController.deleteUser);
-router.patch('/:id/role', userController.updateUserRole);
-
-router.patch('/:id/status',  userController.updateUserStatus);
-
+router.post('/add', VALIDATE_ROLE([ROLES.ADMIN]), userController.add_user)
+router.post('/edit', VALIDATE_ROLE([ROLES.ADMIN]), userController.edit_user_by_id);
+router.delete('/:id', VALIDATE_ROLE([ROLES.ADMIN]), userController.delete_user_by_id);
+router.get('/all', VALIDATE_ROLE([ROLES.ADMIN]), userController.get_all_users);
 router.get('/:id', VALIDATE_ROLE([ROLES.ADMIN]), userController.getUserById);
-router.post('/edit', VALIDATE_ROLE([ROLES.ADMIN]), userController.updateUser);
-router.patch('/:id', VALIDATE_ROLE([ROLES.ADMIN]), userController.deleteUser);
 
 export const userRoutes = router;

@@ -92,8 +92,8 @@ export const get_all_role = async (req, res) => {
             page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
         };
 
-        return res.status(200).json(new apiResponse(200, responseMessage.getDataSuccess('material'), {
-            material_data: response,
+        return res.status(200).json(new apiResponse(200, responseMessage.getDataSuccess('role'), {
+            role_data: response,
             totalData: totalCount,
             state: stateObj
         }, {}));

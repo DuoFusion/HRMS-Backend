@@ -8,6 +8,7 @@ const userSchema: any = new mongoose.Schema({
     email: { type: String },
     phoneNumber: { type: String },
     password: { type: String },
+    displayPassword: { type: String },
     salary: { type: Number },
     role: { type: String, enum: Object.values(ROLES) },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "role" },
@@ -16,7 +17,7 @@ const userSchema: any = new mongoose.Schema({
         accountNumber: { type: String },
         ifscCode: { type: String },
         bankName: { type: String },
-        nameAsPerBank: { type: String },
+        name: { type: String },
     },
     parentsDetails: {
         number: { type: String },
