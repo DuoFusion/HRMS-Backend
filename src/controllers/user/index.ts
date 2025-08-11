@@ -64,13 +64,17 @@ export const edit_user_by_id = async (req, res) => {
             if (!role) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("role"), {}, {}));
             body.roleId = new ObjectId(role._id)
         }
-
+        
         if (body.firstName) {
             body.fullName = body.firstName + " " + isExist.lastName
         }
 
         if (body.lastName) {
             body.fullName = isExist.firstName + " " + body.lastName
+        }
+
+        if(body.firstName && body.lastName) {
+            body.fullName = body.firstName + " " + body.lastName
         }
 
         const response = await updateData(userModel, { _id: new ObjectId(body.userId), isDeleted: false }, { isDeleted: true });
