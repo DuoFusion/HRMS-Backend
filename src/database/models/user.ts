@@ -1,14 +1,31 @@
 const mongoose = require('mongoose')
-import { ROLES } from "../../common";
+import { ROLES, RELATION } from "../../common";
 
 const userSchema: any = new mongoose.Schema({
     firstName: { type: String },
     lastName: { type: String },
     fullName: { type: String },
     email: { type: String },
+    phoneNumber: { type: String },
     password: { type: String },
+    salary: { type: Number },
     role: { type: String, enum: Object.values(ROLES) },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "role" },
+    bankDetails: {
+        upiId: { type: String },
+        accountNumber: { type: String },
+        ifscCode: { type: String },
+        bankName: { type: String },
+        nameAsPerBank: { type: String },
+    },
+    parentsDetails: {
+        number: { type: String },
+        name: { type: String },
+        relation: { type: String, enum: Object.values(RELATION) }
+    },
+    aadharCardNumber: { type: String },
+    panCardNumber: { type: String },
+    position: { type: String },
     department: { type: String },
     designation: { type: String },
     contactNumber: { type: String },

@@ -5,6 +5,7 @@ import { userRoutes } from './user'
 import { roleRoutes } from './role'
 import { moduleRoutes } from './module'
 import { permissionRoutes } from './permission'
+import { uploadRoutes } from './upload'
 
 const router = Router()
 
@@ -13,5 +14,6 @@ router.use('/users', userRoutes)
 router.use('/role', roleRoutes)
 router.use('/module', moduleRoutes)
 router.use('/permission', permissionRoutes)
+router.use('/upload', uploadRoutes)
 
 export { router }

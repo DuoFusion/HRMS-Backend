@@ -1,15 +1,17 @@
 import { Request, Response } from 'express';
 import { userModel } from '../../database/models/user';
 import { ROLES } from '../../common';
-import { apiResponse } from '../../common';
-import { countData, getDataWithSorting, getFirstMatch, responseMessage, updateData } from '../../helper';
+import { apiResponse } from '../../common/index';
+import { countData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { log } from 'winston';
+const ObjectId = require("mongoose").Types.ObjectId
 
 interface AuthRequest extends Request {
     user?: any;
 }
 
 // Get all users (admin only)
-export const getAllUsers = async (req: AuthRequest, res: Response) => {
+export const getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10, role, status, search } = req.query;
         const skip = (Number(page) - 1) * Number(limit);
@@ -59,97 +61,84 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Get user by ID
-export const getUserById = async (req: AuthRequest, res: Response) => {
+export const AddUsers = async (req, res) => {
     try {
-        const { id } = req.params;
+        const body = req.body;
+        console.log("body", body);
 
-        const user = await getFirstMatch(userModel, { _id: id, isDeleted: false }, '-password', {});
 
-        if (!user) {
-            return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
+        let isExist = await userModel.findOne({ email: body.email.toLowerCase(), isDeleted: false });
+        if (isExist) {
+            return res.status(400).json(new apiResponse(400, "User already exists with this email", {}, {}));
         }
+        console.log('missing', isExist);
 
-        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("user"), user, {}));
+        const newUser = await userModel.create(body);
+        console.log("newuser", newUser);
+
+        return res.status(201).json(new apiResponse(201, "User created successfully", newUser, {}));
 
     } catch (error) {
-        console.error('Get user by ID error:', error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+        console.error("AddUser Error:", error);
+        return res.status(500).json(new apiResponse(500, "Internal Server Error", {}, error));
     }
 };
 
-// Update user
-export const updateUser = async (req: AuthRequest, res: Response) => {
+export const getUserById = async (req, res) => {
+    reqInfo(req)
+    let { id } = req.params
     try {
-        const { id } = req.params;
-        const currentUser = req.user;
-        const updateDataBody = req.body;
-
-        // Remove sensitive fields from update data
-        delete updateDataBody.password;
-        delete updateDataBody.email; // Email should not be updated through this endpoint
-        delete updateDataBody.role; // Role should be updated through admin endpoint
-
-        // Check if user exists
-        const existingUser = await getFirstMatch(userModel, { _id: id, isDeleted: false }, {}, {});
-        if (!existingUser) {
-            return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
+        const user = await userModel.findOne({ _id: new ObjectId(id), isDeleted: false }).select('-password');
+        if (!user || user.isDeleted) {
+            return res.status(404).json(new apiResponse(404, 'User not found', {}, {}));
         }
+        return res.status(200).json(new apiResponse(200, 'User fetched successfully', user, {}));
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json(new apiResponse(500, 'Error fetching user', {}, error));
+    }
+};
 
-        // Check permissions
-        if (currentUser.role === ROLES.EMPLOYEE && currentUser._id.toString() !== id) {
-            return res.status(403).json(new apiResponse(403, 'You can only update your own profile', {}, {}));
-        }
+export const updateUser = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { userId } = req.body;
+        const body = req.body;
+        console.log('not found', req.body);
+        // Step 2: Check if user exists
+        const existingUser = await userModel.findOne({ _id: new ObjectId(userId), isDeleted: false })
+        if (!existingUser) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
 
-        // Update user
-        const updatedUser = await updateData(userModel, { _id: id }, { ...updateDataBody, updatedAt: new Date() }, {});
+        console.log('data not found', req.body);
+
+        const updatedUser = await userModel.findOneAndUpdate({ _id: new ObjectId(userId), isDeleted: false }, body, { new: true });
 
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("user"), updatedUser, {}));
-
     } catch (error) {
-        console.error('Update user error:', error);
+        console.error("Update user error:", error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
-// Delete user (soft delete)
-export const deleteUser = async (req: AuthRequest, res: Response) => {
+
+export const deleteUser = async (req, res) => {
+    reqInfo(req)
     try {
         const { id } = req.params;
-        const currentUser = req.user;
-
-        // Check if user exists
-        const existingUser = await getFirstMatch(userModel, { _id: id, isDeleted: false }, {}, {});
-        if (!existingUser) {
-            return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("user"), {}, {}));
+        const Delete = await userModel.findOneAndUpdate({ _id: new ObjectId(id), isDeleted: false }, { isDeleted: true }, { new: true });
+        if (!Delete) {
+            return res.status(404).json(new apiResponse(404, "Delete is not found", {}, {}));
         }
+        console.log("Delete", Delete);
 
-        // Check permissions - only admin can delete users
-        if (currentUser.role !== ROLES.ADMIN) {
-            return res.status(403).json(new apiResponse(403, 'Only admin can delete users', {}, {}));
-        }
-
-        // Prevent admin from deleting themselves
-        if (currentUser._id.toString() === id) {
-            return res.status(400).json(new apiResponse(400, 'Cannot delete your own account', {}, {}));
-        }
-
-        // Soft delete user
-        await updateData(userModel, { _id: id }, {
-            isDeleted: true,
-            updatedAt: new Date()
-        }, {});
-
-        return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("user"), {}, {}));
-
+        return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("Delete"), Delete, {}))
     } catch (error) {
-        console.error('Delete user error:', error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+        return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
     }
-};
+}
 
 // Update user role (admin only)
-export const updateUserRole = async (req: AuthRequest, res: Response) => {
+export const updateUserRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { role } = req.body;
@@ -187,8 +176,10 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
     }
 };
 
+
+
 // Update user status (admin/HR only)
-export const updateUserStatus = async (req: AuthRequest, res: Response) => {
+export const updateUserStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -220,4 +211,4 @@ export const updateUserStatus = async (req: AuthRequest, res: Response) => {
         console.error('Update user status error:', error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
-}; 
+};

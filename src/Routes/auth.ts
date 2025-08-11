@@ -6,7 +6,6 @@ import { ROLES } from '../common';
 const router = Router();
 
 router.post('/login', authController.login);
-router.post('/login', authController.login);
 
 router.use(adminJWT)
 router.post('/register', authController.register);

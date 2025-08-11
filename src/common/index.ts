@@ -41,3 +41,11 @@ export const getUniqueOtp = async () => {
     }
     return otp;
 };
+
+export const RELATION = {
+    father : 'father',
+    mother : 'mother',
+    son : 'son',
+    brother : 'brother',
+    sister : 'sister',
+}
