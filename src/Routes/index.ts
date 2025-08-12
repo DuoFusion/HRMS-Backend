@@ -8,6 +8,7 @@ import { permissionRoutes } from './permission'
 import { uploadRoutes } from './upload'
 import { companyController } from '../controllers'
 import { companyRoutes } from './company'
+import { leaveRoutes } from './leave'
 
 const router = Router()
 
@@ -17,6 +18,7 @@ router.use('/role', roleRoutes)
 router.use('/module', moduleRoutes)
 router.use('/permission', permissionRoutes)
 router.use('/upload', uploadRoutes)
-router.use('/company',companyRoutes)
+router.use('/company', companyRoutes)
+router.use('/leave', leaveRoutes)
 
 export { router }

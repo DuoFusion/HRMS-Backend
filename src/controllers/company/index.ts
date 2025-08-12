@@ -28,6 +28,7 @@ export const AddUser = async (req, res) => {
 }
 
 export const GetAllUser = async (req, res) => {
+    reqInfo(req);
     try {
         const users = await companyModel.find({ isDeleted: false }).select("-password");
         return res.status(200).json(new apiResponse(200, "Users fetched successfully", users, {}));
@@ -82,6 +83,17 @@ export const GetUserById = async (req, res) => {
 
 // }
 
+export const EditUser = async (req, res) => {
+    reqInfo(req);
+    const { id } = req.params;
+    const body = req.body;
+    try {
+        const EditUser = await companyModel.findOneAndEdit()
+    } catch (error) {
+        
+    }
+
+}
 
 export const updateUser = async (req, res) => {
     reqInfo(req)

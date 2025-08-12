@@ -43,9 +43,28 @@ export const getUniqueOtp = async () => {
 };
 
 export const RELATION = {
-    father : 'father',
-    mother : 'mother',
-    son : 'son',
-    brother : 'brother',
-    sister : 'sister',
+    father: 'father',
+    mother: 'mother',
+    son: 'son',
+    brother: 'brother',
+    sister: 'sister',
+}
+
+export const LEAVE_TYPE = {
+    annual: 'annual',
+    sick: 'sick',
+    casual: 'casual',
+    unpaid: 'unpaid',
+    other: 'other'
+}
+
+export const LEAVE_STATUS = {
+    pending: 'pending',
+    approved: 'approved',
+    rejected: 'rejected',
+}
+
+export const DAY_TYPE = {
+    full: 'full',
+    half: 'half'
 }

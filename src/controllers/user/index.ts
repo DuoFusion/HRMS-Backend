@@ -167,6 +167,6 @@ export const getUserById = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("user"), response, {}));
     } catch (error) {
         console.log(error)
-        return res.status(500).json(new apiResponse(500, 'Error fetching user', {}, error));
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
