@@ -16,6 +16,7 @@ export const add_Leave = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
         console.log("Validated leave request:", value);
 
+        
         let isUserExits = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, {}, {});
         if (!isUserExits) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
 
