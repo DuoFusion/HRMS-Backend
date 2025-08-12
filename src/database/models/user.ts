@@ -12,6 +12,7 @@ const userSchema: any = new mongoose.Schema({
     salary: { type: Number },
     role: { type: String, enum: Object.values(ROLES) },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "role" },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
     bankDetails: {
         upiId: { type: String },
         accountNumber: { type: String },

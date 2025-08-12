@@ -3,11 +3,15 @@ import Joi from "joi";
 export const addCompanySchema = Joi.object().keys({
     name: Joi.string().required(),
     ownerName: Joi.string().required(),
-    website: Joi.string().required(),
     address: Joi.string().required(),
     phoneNumber: Joi.string().required(),
-    staringTime: Joi.date().required(),
-    endingTime: Joi.date().required(),
+    email: Joi.string().email().optional(),
+    website: Joi.string().required(),
+    logo: Joi.string().optional(),
+    workingHours: Joi.object({
+        start: Joi.date().required(),
+        end: Joi.date().required()
+    }).required(),
 });
 
 export const editCompanySchema = Joi.object().keys({
@@ -17,8 +21,13 @@ export const editCompanySchema = Joi.object().keys({
     website: Joi.string().optional(),
     address: Joi.string().optional(),
     phoneNumber: Joi.string().optional(),
-    staringTime: Joi.date().optional(),
-    endingTime: Joi.date().optional(),
+    email: Joi.string().email().optional(),
+    logo: Joi.string().optional(),
+    workingHours: Joi.object({
+        start: Joi.date().optional(),
+        end: Joi.date().optional()
+    }).optional(),
+    isBlocked: Joi.boolean().optional(),
 });
 
 export const deleteCompanySchema = Joi.object().keys({
