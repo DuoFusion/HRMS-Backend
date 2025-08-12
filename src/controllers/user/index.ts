@@ -22,7 +22,7 @@ export const add_user = async (req, res) => {
 
         if (value.role) {
             let role = await getFirstMatch(roleModel, { role: value.role, isDeleted: false }, {}, {});
-            if (!role) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("Role"), {}, {}));
+            if (!role) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("Role"), {}, {}));
             value.roleId = new ObjectId(role._id)
         }
 
