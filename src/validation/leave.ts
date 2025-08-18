@@ -12,6 +12,7 @@ export const addLeaveSchema = joi.object().keys({
 
 export const updateLeaveSchema = joi.object().keys({
     userId: joi.string().required(),
+    leaveId: joi.string().required(),
     startDate: joi.date().optional(),
     endDate: joi.date().optional(),
     type: joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
@@ -23,4 +24,16 @@ export const updateLeaveSchema = joi.object().keys({
 
 export const deleteLeaveSchema = joi.object().keys({
     leaveId: joi.string().required(),
+});
+
+export const getAllLeavesSchema = joi.object().keys({
+    page: joi.number().integer().min(1).default(1),
+    limit: joi.number().integer().min(1).default(10),
+    statusFilter: joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
+    typeFilter: joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
+    search: joi.string().optional()
+});
+
+export const getLeaveByIdSchema = joi.object({
+    id: joi.string().required()
 });

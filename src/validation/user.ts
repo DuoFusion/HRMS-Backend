@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { ROLES, RELATION } from "../common";
+import { ROLES, RELATION, LEAVE_STATUS, LEAVE_TYPE } from "../common";
 
 export const addUserSchema = Joi.object().keys({
     firstName: Joi.string().required(),
@@ -67,10 +67,10 @@ export const getUserSchema = Joi.object().keys({
     id: Joi.string().required(),
 });
 
-export const getAllUsersSchema = Joi.object().keys({
-    page: Joi.number().integer().min(1).optional(),
-    limit: Joi.number().integer().min(1).max(100).optional(),
-    roleFilter: Joi.string().valid(...Object.values(ROLES)).optional(),
-    activeFilter: Joi.boolean().optional(),
-    search: Joi.string().min(1).optional(),
+export const getAllUserSchema = Joi.object().keys({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).default(10),
+    statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
+    typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
+    search: Joi.string().optional()
 });
