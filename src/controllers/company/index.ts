@@ -1,55 +1,130 @@
 import { companyModel } from "../../database";
 import { apiResponse } from "../../common";
-import { getFirstMatch, reqInfo, responseMessage } from "../../helper";
-import { log } from "console";
+import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { addCompanySchema, deleteCompanySchema, editCompanySchema, getAllCompanySchema, getCompanySchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
-export const AddUser = async (req, res) => {
-
+export const add_company = async (req, res) => {
     reqInfo(req);
-    let body = req.body;
     try {
+        const { error, value } = addCompanySchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        let isExist = await getFirstMatch(companyModel, { number: body.number, isDeleted: false }, {}, {});
-        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('phone number'), {}, {}));
+        let isExist = await getFirstMatch(companyModel, { name: value.name, isDeleted: false }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('name'), {}, {}));
 
-        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('user'), {}, {}));
+        isExist = await getFirstMatch(companyModel, { number: value.number, isDeleted: false }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('number'), {}, {}));
 
-        const newUser = await companyModel.create(body);
-        return res.status(200).json(new apiResponse(200, 'user created successfully', newUser, {}));
+        const response = await createData(companyModel, value);
 
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("company"), response, {}));
     } catch (error) {
         console.log(error);
-        return res.status(500).json(new apiResponse(500, "Internal Server Error", {}, error));
-
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
-
 }
 
+<<<<<<< HEAD
 export const GetAllUser = async (req, res) => {
     reqInfo(req);
+=======
+export const edit_company_by_id = async (req, res) => {
+    reqInfo(req)
+>>>>>>> 1593bafbf24b213b3c2683de8480ab735278ee75
     try {
-        const users = await companyModel.find({ isDeleted: false }).select("-password");
-        return res.status(200).json(new apiResponse(200, "Users fetched successfully", users, {}));
+        const { error, value } = editCompanySchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        let isExist = await getFirstMatch(companyModel, { _id: new ObjectId(value.companyId), isDeleted: false }, {}, {});
+        if (!isExist) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("company"), {}, {}));
+
+        isExist = await getFirstMatch(companyModel, { email: value.email, isDeleted: false, _id: { $ne: new ObjectId(value.companyId) } }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("email"), {}, {}));
+
+        isExist = await getFirstMatch(companyModel, { phoneNumber: value.phoneNumber, isDeleted: false, _id: { $ne: new ObjectId(value.companyId) } }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("phone number"), {}, {}));
+
+        const response = await updateData(companyModel, { _id: new ObjectId(value.companyId), isDeleted: false }, value);
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("company"), response, {}));
     } catch (error) {
-        console.error(error);
-        return res.status(500).json(new apiResponse(500, "Internal Server Error", {}, error));
+        console.log(error)
+        return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
+    }
+}
+
+export const delete_company_by_id = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = deleteCompanySchema.validate(req.params)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const response = await updateData(companyModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true });
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("company"), {}, {}));
+        return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("company"), {}, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
+    }
+};
+
+export const get_all_company = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = getAllCompanySchema.validate(req.query)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, activeFilter, search } = value;
+
+        options.sort = { createdAt: -1 }
+        if (activeFilter) criteria.isBlocked = activeFilter
+
+        if (search) {
+            criteria.$or = [
+                { name: { $regex: search, $options: 'si' } },
+                { ownerName: { $regex: search, $options: 'si' } },
+            ];
+        }
+
+        if (page && limit) {
+            options.skip = (parseInt(page) - 1) * parseInt(limit);
+            options.limit = parseInt(limit);
+        }
+
+        const response = await getDataWithSorting(companyModel, criteria, {}, options);
+        const totalCount = await countData(companyModel, criteria);
+
+        const stateObj = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || totalCount,
+            page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
+        };
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('company'), {
+            company_data: response || [],
+            totalData: totalCount,
+            state: stateObj
+        }, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
 
-export const GetUserById = async (req, res) => {
+export const get_company_by_id = async (req, res) => {
     reqInfo(req);
-    const { id } = req.params;
     try {
-        const response = await getFirstMatch(companyModel, { _id: new ObjectId(id), isDeleted: false }, {}, {});
-        console.log("getFirstMatch result:", response);
+        const { error, value } = getCompanySchema.validate(req.params)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
+        const response = await getFirstMatch(companyModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Company"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Company"), response, {}));
-
     } catch (error) {
+<<<<<<< HEAD
         console.error(error);
         return res.status(500).json(new apiResponse(500, "Internal Server Error", {}, error));
 
@@ -107,5 +182,9 @@ export const updateUser = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage.updateDataSuccess("news is updated"), updatedUser, {}))
     } catch (error) {
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
+=======
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+>>>>>>> 1593bafbf24b213b3c2683de8480ab735278ee75
     }
 }

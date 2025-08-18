@@ -21,7 +21,7 @@ export const userStatus = {
 
 export const ROLES = {
     ADMIN: 'admin',
-    PROJECT_MANAGER: 'project_manager',
+    PROJECT_MANAGER: 'project-manager',
     HR: 'hr',
     EMPLOYEE: 'employee'
 }

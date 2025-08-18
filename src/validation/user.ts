@@ -56,7 +56,7 @@ export const editUserSchema = Joi.object().keys({
     position: Joi.string().optional(),
     department: Joi.string().optional(),
     designation: Joi.string().optional(),
-    isBlocked: Joi.string().optional(),
+    isBlocked: Joi.boolean().optional(),
 });
 
 export const deleteUserSchema = Joi.object().keys({
