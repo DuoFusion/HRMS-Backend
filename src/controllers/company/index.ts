@@ -14,7 +14,7 @@ export const add_company = async (req, res) => {
         let isExist = await getFirstMatch(companyModel, { name: value.name, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('name'), {}, {}));
 
-        isExist = await getFirstMatch(companyModel, { number: value.number, isDeleted: false }, {}, {});
+        isExist = await getFirstMatch(companyModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('number'), {}, {}));
 
         const response = await createData(companyModel, value);
