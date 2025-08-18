@@ -9,9 +9,10 @@ export const addCompanySchema = Joi.object().keys({
     website: Joi.string().required(),
     logo: Joi.string().optional(),
     workingHours: Joi.object({
-        start: Joi.date().required(),
-        end: Joi.date().required()
+        start: Joi.string().required(),
+        end: Joi.string().required()
     }).required(),
+    lateMinutes: Joi.number().required()
 });
 
 export const editCompanySchema = Joi.object().keys({
@@ -27,6 +28,7 @@ export const editCompanySchema = Joi.object().keys({
         start: Joi.date().optional(),
         end: Joi.date().optional()
     }).optional(),
+    lateMinutes: Joi.number().optional(),
     isBlocked: Joi.boolean().optional(),
 });
 
@@ -39,8 +41,8 @@ export const getCompanySchema = Joi.object().keys({
 });
 
 export const getAllCompanySchema = Joi.object().keys({
-    page: Joi.number().integer().min(1).optional(),
-    limit: Joi.number().integer().min(1).max(100).optional(),
+    page: Joi.number().integer().required(),
+    limit: Joi.number().integer().required(),
     activeFilter: Joi.boolean().optional(),
-    search: Joi.string().min(1).optional(),
+    search: Joi.string().optional(),
 });
