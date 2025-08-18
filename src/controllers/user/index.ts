@@ -2,11 +2,7 @@ import bcrypt from 'bcryptjs';
 import { apiResponse, ROLES } from '../../common';
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { roleModel, userModel } from '../../database';
-<<<<<<< HEAD
-import { addUserSchema, deleteUserSchema, getAllLeavesSchema, getAllUserSchema, getUserSchema } from '../../validation';
-=======
-import { addUserSchema, deleteUserSchema, editUserSchema, getAllUsersSchema, getUserSchema } from '../../validation';
->>>>>>> 1593bafbf24b213b3c2683de8480ab735278ee75
+import { addUserSchema, deleteUserSchema, editUserSchema, getAllUserSchema, getUserSchema } from '../../validation';
 const ObjectId = require("mongoose").Types.ObjectId
 
 export const add_user = async (req, res) => {
