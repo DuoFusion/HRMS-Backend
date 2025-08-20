@@ -78,7 +78,14 @@ export const get_all_company = async (req, res) => {
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, activeFilter, search } = value;
 
         options.sort = { createdAt: -1 }
-        if (activeFilter) criteria.isBlocked = activeFilter
+
+        // if (activeFilter) criteria.isBlocked = activeFilter
+
+        if (activeFilter == "true") {
+            criteria.isBlocked = true
+        } else {
+            criteria.isBlocked = false
+        }
 
         if (search) {
             criteria.$or = [
