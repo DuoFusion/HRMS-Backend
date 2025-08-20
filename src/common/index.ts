@@ -68,3 +68,15 @@ export const DAY_TYPE = {
     full: 'full',
     half: 'half'
 }
+
+export const TASK_STATUS = {
+    pending: 'pending',
+    in_progress: 'in_progress',
+    completed: 'completed',
+}
+
+export const TASK_TYPE = {
+    break: 'break',
+    lunch: 'lunch',
+    meeting: 'meeting'
+}

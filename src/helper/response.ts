@@ -54,4 +54,5 @@ export const responseMessage = {
     updateDataSuccess: (message: string): any => { return `${message[0].toUpperCase() + message.slice(1).toLowerCase()} has been successfully updated!` },
     updateDataError: (message: string): any => { return `${message[0].toUpperCase() + message.slice(1).toLowerCase()} updating time getting an error!` },
     deleteDataSuccess: (message: string): any => { return `Your ${message.toLowerCase()} has been successfully deleted!` },
+    dataAlreadyDeleted : (message : string) : any => {return `your ${message.toLocaleLowerCase()} has been already deleted`}
 }
