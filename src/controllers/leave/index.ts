@@ -61,7 +61,7 @@ export const Delete_leave = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, { isDeleted: true }, {});
-        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.deleteDataSuccess('leave'), {}, {}))
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('leave'), {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess('leave'), response, {}));
 
     } catch (error) {
@@ -107,7 +107,7 @@ export const GetAllLeaves = async (req, res) => {
         const totalCount = await countData(leaveModel, match);
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Leaves"), {
-            user_data: response || [],
+            leave_data: response || [],
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
             totalCount

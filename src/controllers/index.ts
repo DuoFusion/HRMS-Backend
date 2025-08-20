@@ -7,3 +7,4 @@ export * as moduleController from "./module"
 export * as permissionController from "./permission"
 export * as companyController from "./company"
 export * as leaveController from "./leave"
+export * as taskController from './task'
