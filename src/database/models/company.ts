@@ -9,8 +9,8 @@ const CompanySchema = new mongoose.Schema({
     website: { type: String },
     logo: { type: String },
     workingHours: {
-        start: { type: Date, },
-        end: { type: Date }
+        start: { type: String, },
+        end: { type: String }
     },
     lateMinutes: { type: String },
     isDeleted: { type: Boolean, default: false },
