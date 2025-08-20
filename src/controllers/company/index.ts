@@ -78,6 +78,7 @@ export const get_all_company = async (req, res) => {
         if (search) {
             criteria.$or = [
                 { name: { $regex: search, $options: 'si' } },
+                { ownerName: { $regex: search, $options: 'si' } },
             ];
         }
 
