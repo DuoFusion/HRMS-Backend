@@ -77,9 +77,11 @@ export const get_all_role = async (req, res) => {
                 { name: { $regex: search, $options: 'si' } },
             ];
         }
-        
+
         if(activeFilter == "true"){
             criteria.isBlocked = true
+        } else {
+            criteria.isBlocked = false
         }
 
         options.sort = { createdAt: -1 }
