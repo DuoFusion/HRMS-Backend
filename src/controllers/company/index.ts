@@ -2,6 +2,7 @@ import { companyModel } from "../../database";
 import { apiResponse } from "../../common";
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { addCompanySchema, deleteCompanySchema, editCompanySchema, getAllCompanySchema, getCompanySchema } from "../../validation";
+import { get } from "config";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -14,11 +15,13 @@ export const add_company = async (req, res) => {
         let isExist = await getFirstMatch(companyModel, { name: value.name, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('name'), {}, {}));
 
+        isExist = await getFirstMatch(companyModel, { email: value.email, isDeleted: false }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('email'), {}, {}));
+
         isExist = await getFirstMatch(companyModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
-        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('number'), {}, {}));
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('phone number'), {}, {}));
 
         const response = await createData(companyModel, value);
-
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("company"), response, {}));
     } catch (error) {
@@ -65,16 +68,12 @@ export const delete_company_by_id = async (req, res) => {
     }
 };
 
+
 export const get_all_company = async (req, res) => {
     reqInfo(req)
+    let { page, limit, search, activeFilter } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
-        const { error, value } = getAllCompanySchema.validate(req.query)
-        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-
-        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, activeFilter, search } = value;
-
-        options.sort = { createdAt: -1 }
-        if (activeFilter) criteria.isBlocked = activeFilter
+        criteria.isDeleted = false;
 
         if (search) {
             criteria.$or = [
@@ -82,6 +81,14 @@ export const get_all_company = async (req, res) => {
                 { ownerName: { $regex: search, $options: 'si' } },
             ];
         }
+
+        if (activeFilter == "true") {
+            criteria.isBlocked = true
+        } else {
+            criteria.isBlocked = false
+        }
+
+        options.sort = { createdAt: -1 }
 
         if (page && limit) {
             options.skip = (parseInt(page) - 1) * parseInt(limit);
@@ -97,17 +104,16 @@ export const get_all_company = async (req, res) => {
             page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
         };
 
-        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('company'), {
-            company_data: response || [],
+        return res.status(200).json(new apiResponse(200, responseMessage.getDataSuccess('company'), {
+            company_data: response,
             totalData: totalCount,
             state: stateObj
         }, {}));
     } catch (error) {
         console.log(error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
     }
-};
-
+}
 
 export const get_company_by_id = async (req, res) => {
     reqInfo(req);
