@@ -15,7 +15,7 @@ export const add_role = async (req, res) => {
         value.createdBy = new ObjectId(user._id)
         value.updatedBy = new ObjectId(user._id)
 
-        const isExit = await getFirstMatch(roleModel, { name: value.name }, {}, {})
+        const isExit = await getFirstMatch(roleModel, { name: value.name, isDeleted: false }, {}, {})
         if (isExit) return res.status(405).json(new apiResponse(405, responseMessage?.dataAlreadyExist("Name"), {}, {}))
 
         const response = await createData(roleModel, value);
@@ -37,10 +37,10 @@ export const edit_role_by_id = async (req, res) => {
 
         value.updatedBy = new ObjectId(user._id)
 
-        let isExist = await getFirstMatch(roleModel, { _id: new ObjectId(value.roleId) }, {}, {});
+        let isExist = await getFirstMatch(roleModel, { _id: new ObjectId(value.roleId), isDeleted: false }, {}, {});
         if (!isExist) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("Role"), {}, {}));
 
-        isExist = await getFirstMatch(roleModel, { name: value.name, _id: { $ne: new ObjectId(value.roleId) } }, {}, {})
+        isExist = await getFirstMatch(roleModel, { name: value.name, isDeleted: false, _id: { $ne: new ObjectId(value.roleId) } }, {}, {})
         if (isExist) return res.status(405).json(new apiResponse(405, responseMessage?.dataAlreadyExist("Name"), {}, {}))
 
         const response = await updateData(roleModel, { _id: new ObjectId(value.roleId) }, value, {});
@@ -68,7 +68,7 @@ export const delete_role_by_id = async (req, res) => {
 
 export const get_all_role = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search } = req.query, criteria: any = {}, options: any = { lean: true };
+    let { page, limit, search, activeFilter } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
         criteria.isDeleted = false;
 
@@ -76,6 +76,12 @@ export const get_all_role = async (req, res) => {
             criteria.$or = [
                 { name: { $regex: search, $options: 'si' } },
             ];
+        }
+
+        if(activeFilter == "true"){
+            criteria.isBlocked = true
+        } else {
+            criteria.isBlocked = false
         }
 
         options.sort = { createdAt: -1 }

@@ -25,8 +25,8 @@ export const editCompanySchema = Joi.object().keys({
     email: Joi.string().email().optional(),
     logo: Joi.string().optional(),
     workingHours: Joi.object({
-        start: Joi.date().optional(),
-        end: Joi.date().optional()
+        start: Joi.string().optional(),
+        end: Joi.string().optional()
     }).optional(),
     lateMinutes: Joi.number().optional(),
     isBlocked: Joi.boolean().optional(),
