@@ -15,11 +15,11 @@ export const add_company = async (req, res) => {
         let isExist = await getFirstMatch(companyModel, { name: value.name, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('name'), {}, {}));
 
-        isExist = await getFirstMatch(companyModel, { name: value.email, isDeleted: false }, {}, {});
+        isExist = await getFirstMatch(companyModel, { email: value.email, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('email'), {}, {}));
 
         isExist = await getFirstMatch(companyModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
-        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('number'), {}, {}));
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('phone number'), {}, {}));
 
         const response = await createData(companyModel, value);
 
@@ -79,13 +79,7 @@ export const get_all_company = async (req, res) => {
 
         options.sort = { createdAt: -1 }
 
-        // if (activeFilter) criteria.isBlocked = activeFilter
-
-        if (activeFilter == "true") {
-            criteria.isBlocked = true
-        } else {
-            criteria.isBlocked = false
-        }
+        if (activeFilter) criteria.isBlocked = activeFilter
 
         if (search) {
             criteria.$or = [
