@@ -7,7 +7,7 @@ const holiDaySchema = new mongoose.Schema({
     description: { type: String },
     date: { type: Date },
     type: { type: String, enum: Object.values(HOLIDAY_TYPE) },
-    isRecurring: { type: Boolean },
+    isRecurring: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     isDeleted: { type: Boolean, default: false }

@@ -1,15 +1,11 @@
 import { holidayModel } from "../../database";
 import { apiResponse } from "../../common";
 import { createData, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
-import { addHolidaySchema, deleteHolidaySchema, updateHolidaySchema } from "../../validation";
-import mongoose from "mongoose";
-import { query } from "express";
-import { getFips } from "crypto";
-import { object } from "joi";
+import { addHolidaySchema, updateHolidaySchema } from "../../validation";
 
 const ObjectId = require('mongoose').Types.ObjectId;
 
-export const addHoliday = async (req, res) => {
+export const add_holiday = async (req, res) => {
     reqInfo(req)
     try {
         const body = req.body;
@@ -21,8 +17,7 @@ export const addHoliday = async (req, res) => {
         if (isExist) return res.status(404).json(new apiResponse(404, responseMessage?.dataAlreadyExist("holiday"), {}, {}));
 
         const response = await createData(holidayModel, body);
-        console.log('res Data??', response);
-
+        
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
 
         return res.status(200).json(new apiResponse(200, responseMessage.addDataSuccess('holiday'), response, {}));
@@ -32,7 +27,7 @@ export const addHoliday = async (req, res) => {
     }
 }
 
-export const updateHoliday = async (req, res) => {
+export const edit_holiday_by_id = async (req, res) => {
     reqInfo(req)
     try {
         const body = req.body

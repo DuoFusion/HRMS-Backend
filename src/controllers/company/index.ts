@@ -2,6 +2,7 @@ import { companyModel } from "../../database";
 import { apiResponse } from "../../common";
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { addCompanySchema, deleteCompanySchema, editCompanySchema, getAllCompanySchema, getCompanySchema } from "../../validation";
+import { get } from "config";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -13,6 +14,9 @@ export const add_company = async (req, res) => {
 
         let isExist = await getFirstMatch(companyModel, { name: value.name, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('name'), {}, {}));
+
+        isExist = await getFirstMatch(companyModel, { name: value.email, isDeleted: false }, {}, {});
+        if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('email'), {}, {}));
 
         isExist = await getFirstMatch(companyModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist('number'), {}, {}));
