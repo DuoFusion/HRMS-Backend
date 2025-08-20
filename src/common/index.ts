@@ -1,3 +1,4 @@
+import { publicDecrypt } from "crypto"
 import { userModel } from "../database"
 
 export class apiResponse {
@@ -79,4 +80,11 @@ export const TASK_TYPE = {
     break: 'break',
     lunch: 'lunch',
     meeting: 'meeting'
+}
+
+export const HOLIDAY_TYPE = {
+    public: 'public',
+    Optional: 'Optional',
+    Company: 'Company',
+    Other: 'Other'
 }

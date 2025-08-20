@@ -10,6 +10,7 @@ import { companyController } from '../controllers'
 import { companyRoutes } from './company'
 import { leaveRoutes } from './leave'
 import { taskRoutes } from './task'
+import { holidayRoutes } from './holiday'
 
 const router = Router()
 
@@ -22,5 +23,6 @@ router.use('/upload', uploadRoutes)
 router.use('/company', companyRoutes)
 router.use('/leave', leaveRoutes)
 router.use('/task', taskRoutes)
+router.use('/holiday', holidayRoutes)
 
 export { router }
