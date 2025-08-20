@@ -68,7 +68,7 @@ export const delete_role_by_id = async (req, res) => {
 
 export const get_all_role = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search } = req.query, criteria: any = {}, options: any = { lean: true };
+    let { page, limit, search, activeFilter } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
         criteria.isDeleted = false;
 
@@ -76,6 +76,10 @@ export const get_all_role = async (req, res) => {
             criteria.$or = [
                 { name: { $regex: search, $options: 'si' } },
             ];
+        }
+
+        if(activeFilter === true){
+            criteria.isBlocked = true
         }
 
         options.sort = { createdAt: -1 }
