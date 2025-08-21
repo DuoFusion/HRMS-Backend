@@ -1,12 +1,8 @@
 import { leaveModel, userModel } from "../../database";
 import { apiResponse, ROLES, } from "../../common";
 import { createData, findOneAndPopulate, getDataWithSorting, countData, getData, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
-const { leave } = require("../../database");
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
-import { create } from "domain";
-import { log } from "console";
-import { object } from "joi";
-import { isModuleNamespaceObject } from "util/types";
+
 const ObjectId = require("mongoose").Types.ObjectId;
 
 export const add_Leave = async (req, res) => {
@@ -17,14 +13,9 @@ export const add_Leave = async (req, res) => {
 
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        let isUserExits = await getFirstMatch(userModel, { _id: new ObjectId(req.body.userId), isDeleted: false }, {}, {});
-        if (!isUserExits) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
-
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
-
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess('leave'), response, {}));
-
     } catch (error) {
         console.error(error);
         return res.status(500).json(new apiResponse(500, "Internal Server Error", {}, error));
