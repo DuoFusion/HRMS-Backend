@@ -49,10 +49,10 @@ export const edit_user_by_id = async (req, res) => {
         const { error, value } = editUserSchema.validate(req.body)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        let isExist = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, {}, {});
-        if (!isExist) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("User"), {}, {}));
-
-        isExist = await getFirstMatch(userModel, { email: value.email, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
+        let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, {}, {});
+        if (!user ) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("User"), {}, {}));
+        
+        let isExist = await getFirstMatch(userModel, { email: value.email, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("Email"), {}, {}));
 
         isExist = await getFirstMatch(userModel, { phoneNumber: value.phoneNumber, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
@@ -72,11 +72,11 @@ export const edit_user_by_id = async (req, res) => {
         }
 
         if (value.firstName) {
-            value.fullName = value.firstName + " " + isExist.lastName
+            value.fullName = value.firstName + " " + user.lastName
         }
 
         if (value.lastName) {
-            value.fullName = isExist.firstName + " " + value.lastName
+            value.fullName = user.firstName + " " + value.lastName
         }
 
         if (value.firstName && value.lastName) {
