@@ -3,7 +3,7 @@ import { apiResponse } from "../../common";
 import { findAllWithPopulate, getData, responseMessage } from "../../helper";
 import { leaveModel, taskModel, userModel } from "../../database";
 
-export const get_dashboard = async (req: Request, res: Response) => {
+export const get_dashboard = async (req, res) => {
     let { user } = req.headers
     try {
         let [sec1, sec2, sec3] = await Promise.all([
@@ -59,18 +59,40 @@ export const upcoming_birthday_data_all_user = async (user) => {
 };
 
 export const task_data_per_day = async (user) => {
-    let today = new Date();
-    let tomorrow = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    return await findAllWithPopulate(
-        taskModel,
-        { createdAt: { $gte: today, $lt: tomorrow } },
-        {},
-        {},
-        { path: "userId", select: "firstName lastName" }
-    );
+    return await taskModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                startDate: { $gte: today, $lt: tomorrow }
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "user"
+            }
+        },
+        { $unwind: "$user" },
+        {
+            $project: {
+                title: 1,
+                description: 1,
+                status: 1,
+                "user.firstName": 1,
+                "user.lastName": 1
+            }
+        },
+        { $sort: { startDate: 1 } }
+    ]);
 };
+
 
 export const leave_data_approve_by_admin = async (user) => {
     return await findAllWithPopulate(
