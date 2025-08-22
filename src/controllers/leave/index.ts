@@ -30,7 +30,7 @@ export const update_Leave = async (req, res) => {
         const body = req.body;
         const { error, value } = updateLeaveSchema.validate(body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
+        
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(req.body.leaveId), isDeleted: false }, {}, {});
 
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('leave'), {}, {}));

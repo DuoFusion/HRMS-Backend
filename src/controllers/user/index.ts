@@ -97,7 +97,7 @@ export const delete_user_by_id = async (req, res) => {
         const { error, value } = deleteUserSchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await updateData(userModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true });
+        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, { isDeleted: true });
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("User"), {}, {}));
     } catch (error) {
@@ -109,7 +109,7 @@ export const delete_user_by_id = async (req, res) => {
 export const get_all_users = async (req, res) => {
     reqInfo(req)
     try {
-        const { error, value } = getAllUserSchema.validate(req.query)
+        const { error, value} = getAllUserSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
@@ -117,8 +117,13 @@ export const get_all_users = async (req, res) => {
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
-        if (activeFilter) criteria.isBlocked = activeFilter
 
+        if (activeFilter == "true") {
+            criteria.isBlocked = true
+        } else {
+            criteria.isBlocked = false
+        }
+        
         if (search) {
             criteria.$or = [
                 { name: { $regex: search, $options: 'si' } },
@@ -162,7 +167,7 @@ export const get_user_by_id = async (req, res) => {
         const { error, value } = getUserSchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await getFirstMatch(userModel, { _id: new ObjectId(value.id), isDeleted: false }, '-password', {})
+        const response = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, '-password', {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("User"), response, {}));
     } catch (error) {

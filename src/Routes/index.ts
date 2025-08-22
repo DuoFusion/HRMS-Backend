@@ -6,11 +6,11 @@ import { roleRoutes } from './role'
 import { moduleRoutes } from './module'
 import { permissionRoutes } from './permission'
 import { uploadRoutes } from './upload'
-import { companyController } from '../controllers'
 import { companyRoutes } from './company'
 import { leaveRoutes } from './leave'
 import { taskRoutes } from './task'
 import { holidayRoutes } from './holiday'
+import { boardRoutes } from './dashboard'
 
 const router = Router()
 
@@ -24,5 +24,6 @@ router.use('/company', companyRoutes)
 router.use('/leave', leaveRoutes)
 router.use('/task', taskRoutes)
 router.use('/holiday', holidayRoutes)
+router.use('/dashboard', boardRoutes)
 
 export { router }
