@@ -1,10 +1,7 @@
 import { Router } from "express";
 import { companyController } from "../controllers";
-import { adminJWT } from "../helper";
 
 const router = Router();
-
-router.use(adminJWT);
 
 router.post('/add', companyController.add_company);
 router.post('/edit', companyController.edit_company_by_id);

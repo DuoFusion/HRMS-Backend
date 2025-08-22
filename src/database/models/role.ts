@@ -1,8 +1,7 @@
 const mongoose = require('mongoose')
-import { ROLES } from "../../common";
 
 const roleSchema: any = new mongoose.Schema({
-    name: { type: String, enum: Object.values(ROLES) },
+    name: { type: String },
     isDeleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },

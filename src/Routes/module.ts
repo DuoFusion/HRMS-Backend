@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { ROLES } from "../common";
 import { moduleController } from "../controllers";
-import { adminJWT, VALIDATE_ROLE } from '../helper';
+import { VALIDATE_ROLE } from '../helper';
 
 const router = Router()
 
-router.use(adminJWT)
 router.post("/add", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.add_module)
 router.post("/edit", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.edit_module_by_id)
 router.delete("/:id", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.delete_module_by_id)

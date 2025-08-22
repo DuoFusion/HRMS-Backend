@@ -9,6 +9,7 @@ import fs from 'fs'
 import path from 'path'
 import multer from 'multer';
 import { seedAdminUser } from './helper'
+import { monthlySalaryInvoiceJob } from './helper'
 const app = express();
 
 app.use("/uploads", express.static(path.join(__dirname, "..", "..", "uploads")));
@@ -76,4 +77,5 @@ app.use('*', bad_gateway);
 let server = new http.Server(app);
 
 seedAdminUser();
+monthlySalaryInvoiceJob.start();
 export default server;

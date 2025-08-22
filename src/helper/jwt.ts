@@ -9,7 +9,7 @@ import { getFirstMatch } from './database_service'
 const ObjectId = require("mongoose").Types.ObjectId
 const jwt_token_secret = config.JWT_TOKEN_SECRET;
 
-export const    adminJWT = async (req: Request, res: Response, next) => {
+export const adminJWT = async (req: Request, res: Response, next) => {
     let { authorization } = req.headers, result: any
     if (authorization) {
         try {

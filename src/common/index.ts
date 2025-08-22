@@ -15,9 +15,9 @@ export class apiResponse {
 }
 
 export const userStatus = {
-    user: "user",
-    admin: "admin",
-    upload: "upload"
+    USER: "user",
+    ADMIN: "admin",
+    UPLOAD: "upload"
 }
 
 export const ROLES = {
@@ -44,36 +44,36 @@ export const getUniqueOtp = async () => {
 };
 
 export const RELATION = {
-    father: 'father',
-    mother: 'mother',
-    son: 'son',
-    brother: 'brother',
-    sister: 'sister',
+    FATHER: 'father',
+    MOTHER: 'mother',
+    SON: 'son',
+    BROTHER: 'brother',
+    SISTER: 'sister',
 }
 
 export const LEAVE_TYPE = {
-    annual: 'annual',
-    sick: 'sick',
-    casual: 'casual',
-    unpaid: 'unpaid',
-    other: 'other'
+    ANNUAL: 'annual',
+    SICK: 'sick',
+    CASUAL: 'casual',
+    UNPAID: 'unpaid',
+    OTHER: 'other'
 }
 
 export const LEAVE_STATUS = {
-    pending: 'pending',
-    approved: 'approved',
-    rejected: 'rejected',
+    PENDING: 'pending',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
 }
 
-export const DAY_TYPE = {
-    full: 'full',
-    half: 'half'
+export const LEAVE_DAY_TYPE = {
+    FULL: 'full',
+    HALF: 'half'
 }
 
 export const TASK_STATUS = {
-    pending: 'pending',
-    in_progress: 'in_progress',
-    completed: 'completed',
+    PENDING: 'pending',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
 }
 
 export const TASK_TYPE = {

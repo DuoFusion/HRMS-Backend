@@ -30,6 +30,10 @@ const userSchema: any = new mongoose.Schema({
     position: { type: String },
     department: { type: String },
     designation: { type: String },
+    workingTime: {
+        start: { type: String },
+        end: { type: String }
+    },
     profilePhoto: { type: String, default: null },
     isEmailVerified: { type: Boolean, default: false },
     otp: { type: Number },

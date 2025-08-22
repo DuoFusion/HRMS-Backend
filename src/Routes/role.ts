@@ -5,7 +5,6 @@ import { ROLES } from '../common';
 
 const router = Router();
 
-router.use(adminJWT)
 router.post('/add', VALIDATE_ROLE([ROLES.ADMIN]), roleController.add_role);
 router.post('/edit', VALIDATE_ROLE([ROLES.ADMIN]), roleController.edit_role_by_id);
 router.delete('/:id', VALIDATE_ROLE([ROLES.ADMIN]), roleController.delete_role_by_id);

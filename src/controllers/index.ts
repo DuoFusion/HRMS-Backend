@@ -9,3 +9,5 @@ export * as companyController from "./company"
 export * as leaveController from "./leave"
 export * as taskController from './task'
 export * as holidayController from './holiday'
+export * as attendanceController from "./attendance"
+export * as invoiceController from "./invoice"

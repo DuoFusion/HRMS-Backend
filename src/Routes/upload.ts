@@ -5,7 +5,6 @@ import { apiResponse } from '../common';
 import fs from 'fs';
 import path from 'path';
 import url from 'url';
-import { log } from 'winston';
 const router = Router();
 
 router.post("", (req: any, res: any) => {

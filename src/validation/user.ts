@@ -22,6 +22,10 @@ export const addUserSchema = Joi.object().keys({
         name: Joi.string().optional(),
         relation: Joi.string().valid(...Object.values(RELATION)).optional(),
     }).optional(),
+    workingTime: Joi.object({
+        start: Joi.string().required(),
+        end: Joi.string().required()
+    }).required(),
     aadharCardNumber: Joi.string().optional(),
     panCardNumber: Joi.string().optional(),
     position: Joi.string().optional(),
@@ -51,6 +55,10 @@ export const editUserSchema = Joi.object().keys({
         name: Joi.string().optional(),
         relation: Joi.string().valid(...Object.values(RELATION)).optional(),
     }).optional(),
+    workingTime: Joi.object({
+        start: Joi.string().required(),
+        end: Joi.string().required()
+    }).required(),
     aadharCardNumber: Joi.string().optional(),
     panCardNumber: Joi.string().optional(),
     position: Joi.string().optional(),
@@ -68,9 +76,10 @@ export const getUserSchema = Joi.object().keys({
 });
 
 export const getAllUserSchema = Joi.object().keys({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).default(10),
+    page: Joi.number().integer(),
+    limit: Joi.number().integer(),
     statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
-    search: Joi.string().optional()
+    search: Joi.string().optional(),
+    activeFilter: Joi.boolean().optional()
 });

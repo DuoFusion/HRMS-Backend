@@ -1,21 +1,17 @@
-import { object } from "joi";
-import mongoose from "mongoose";
-import { DAY_TYPE, LEAVE_STATUS, LEAVE_TYPE } from "../../common";
+const mongoose = require('mongoose')
+import { LEAVE_DAY_TYPE, LEAVE_STATUS, LEAVE_TYPE } from "../../common";
 
 const leaveSchema = new mongoose.Schema({
-
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     startDate: { type: Date },
     endDate: { type: Date },
     type: { type: String, enum: Object.values(LEAVE_TYPE) },
     reason: { type: String },
-    status: { type: String, enum: Object.values(LEAVE_STATUS) },
-    approvedBy: { type: mongoose.Schema.Types.ObjectId, },
-    approvedAy: { type: Boolean, default: false },
-    dayType: { type: String, enum: Object.values(DAY_TYPE), default: "full" },
+    count: { type: Number, default: 0 },
+    status: { type: String, enum: Object.values(LEAVE_STATUS), default: LEAVE_STATUS.PENDING },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    dayType: { type: String, enum: Object.values(LEAVE_DAY_TYPE), default: LEAVE_DAY_TYPE.FULL },
     isDeleted: { type: Boolean, default: false },
-}, {
-    timestamps: true, versionKey: false
-});
+}, { timestamps: true, versionKey: false });
 
 export const leaveModel = mongoose.model('leave', leaveSchema);
