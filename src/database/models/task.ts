@@ -9,11 +9,13 @@ const TaskSchema = new mongoose.Schema({
     status: { type: String, enum: Object.values(TASK_STATUS) },
     startDate: { type: Date },
     endDate: { type: Date },
+
     timer: {
         isRunning: { type: Boolean, default: false },
         startTime: { type: String },
         totalTime: { type: Number }
     },
+    
     remarks: [{
         text: { type: String },
         type: { type: String, enum: Object.values(TASK_TYPE) },
