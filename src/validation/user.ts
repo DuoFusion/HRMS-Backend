@@ -4,10 +4,11 @@ import { ROLES, RELATION, LEAVE_STATUS, LEAVE_TYPE } from "../common";
 export const addUserSchema = Joi.object().keys({
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
-    fullName:Joi.string().optional(),
+    fullName: Joi.string().optional(),
     email: Joi.string().email().required(),
     phoneNumber: Joi.string().required(),
     password: Joi.string().required(),
+    dob: Joi.string().required(),
     salary: Joi.number().optional(),
     profilePhoto: Joi.string().optional(),
     role: Joi.string().valid(...Object.values(ROLES)).required(),

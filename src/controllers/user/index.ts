@@ -110,9 +110,10 @@ export const get_all_users = async (req, res) => {
     reqInfo(req)
     let { user } = req.headers
     try {
-        const { error, value} = getAllUserSchema.validate(req.query)
+        const { error, value } = getAllUserSchema.validate(req.query)
+        console.log("active",value);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-
+            
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)

@@ -22,27 +22,40 @@ export const get_dashboard = async (req: Request, res: Response) => {
                 return { approvedLeaves: leaves };
             })(),
         ]);
-
-        return res.status(200)
-            .json(new apiResponse(200, responseMessage?.getDataSuccess("dashboard"), { sec1, sec2, sec3 }, {}));
-
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("dashboard"), { sec1, sec2, sec3 }, {}));
     } catch (error) {
-        return res
-            .status(500)
-            .json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
-export const upcoming_birthday_data_all_user = async (user) => {
-    let today = new Date();
-    let next7Days = new Date();
-    next7Days.setDate(today.getDate() + 7);
 
-    return await getData(
-        userModel,
-        { dob: { $gte: today, $lte: next7Days } },
-        "_id firstName lastName dob"
-    );
+export const upcoming_birthday_data_all_user = async (user) => {
+    const today = new Date();
+    const next7 = new Date();
+    next7.setDate(today.getDate() + 7);
+
+    const year = today.getFullYear();
+
+    return await userModel.aggregate([
+        {
+            $addFields: {
+                birthday: {
+                    $dateFromParts: {
+                        year,
+                        month: { $month: "$dob" },
+                        day: { $dayOfMonth: "$dob" }
+                    }
+                }
+            }
+        },
+        {
+            $match: {
+                birthday: { $gte: today, $lte: next7 }
+            }
+        },
+        { $project: { firstName: 1, lastName: 1, dob: 1 } },
+        { $sort: { birthday: 1 } }
+    ]);
 };
 
 export const task_data_per_day = async (user) => {
