@@ -90,7 +90,7 @@ export const get_all_company = async (req, res) => {
             options.skip = (parseInt(page) - 1) * parseInt(limit);
             options.limit = parseInt(limit);
         }
-        console.log("criteria => ",criteria)
+        
         const response = await getDataWithSorting(companyModel, criteria, {}, options);
         const totalCount = await countData(companyModel, criteria);
 
