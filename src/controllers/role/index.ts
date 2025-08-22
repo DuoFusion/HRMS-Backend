@@ -78,11 +78,7 @@ export const get_all_role = async (req, res) => {
             ];
         }
 
-        if(activeFilter == "true"){
-            criteria.isBlocked = true
-        } else {
-            criteria.isBlocked = false
-        }
+        criteria.isBlocked = activeFilter ? true : false
 
         options.sort = { createdAt: -1 }
 

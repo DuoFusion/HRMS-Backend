@@ -121,11 +121,7 @@ export const get_all_users = async (req, res) => {
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
 
-        if (activeFilter == "true") {
-            criteria.isBlocked = true
-        } else {
-            criteria.isBlocked = false
-        }
+        criteria.isBlocked = activeFilter ? true : false
         
         if (search) {
             criteria.$or = [
