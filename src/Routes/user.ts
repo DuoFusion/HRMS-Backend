@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { userController } from '../controllers';
-import { adminJWT, VALIDATE_ROLE } from '../helper';
+import { VALIDATE_ROLE } from '../helper';
 import { ROLES } from '../common';
 
 const router = Router();
 
-router.use(adminJWT);
 router.post('/add', VALIDATE_ROLE([ROLES.ADMIN]), userController.add_user)
 router.post('/edit', VALIDATE_ROLE([ROLES.ADMIN]), userController.edit_user_by_id);
 router.delete('/:id', VALIDATE_ROLE([ROLES.ADMIN]), userController.delete_user_by_id);

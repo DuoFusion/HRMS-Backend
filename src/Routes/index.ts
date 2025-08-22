@@ -11,19 +11,26 @@ import { leaveRoutes } from './leave'
 import { taskRoutes } from './task'
 import { holidayRoutes } from './holiday'
 import { boardRoutes } from './dashboard'
+import { attendanceRoutes } from './attendance'
+import { adminJWT } from '../helper'
+import { invoiceRoutes } from './invoice'
 
 const router = Router()
 
 router.use('/auth', authRoutes)
+
+router.use(adminJWT)
 router.use('/users', userRoutes)
 router.use('/role', roleRoutes)
 router.use('/module', moduleRoutes)
 router.use('/permission', permissionRoutes)
 router.use('/upload', uploadRoutes)
-router.use('/company', companyRoutes)
 router.use('/leave', leaveRoutes)
 router.use('/task', taskRoutes)
 router.use('/holiday', holidayRoutes)
 router.use('/dashboard', boardRoutes)
+router.use('/company',companyRoutes)
+router.use('/attendance', attendanceRoutes)
+router.use('/invoice', invoiceRoutes)
 
 export { router }

@@ -21,7 +21,7 @@ export const add_user = async (req, res) => {
         value.fullName = value.firstName + " " + value.lastName
 
         if (value.role) {
-            let role = await getFirstMatch(roleModel, { role: value.role, isDeleted: false }, {}, {});
+            let role = await getFirstMatch(roleModel, { name: value.role, isDeleted: false }, {}, {});
             if (!role) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("Role"), {}, {}));
             value.roleId = new ObjectId(role._id)
         }
@@ -66,7 +66,7 @@ export const edit_user_by_id = async (req, res) => {
         }
 
         if (value.role) {
-            let role = await getFirstMatch(roleModel, { role: value.role, isDeleted: false }, {}, {});
+            let role = await getFirstMatch(roleModel, { name: value.role, isDeleted: false }, {}, {});
             if (!role) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("Role"), {}, {}));
             value.roleId = new ObjectId(role._id)
         }
@@ -108,11 +108,14 @@ export const delete_user_by_id = async (req, res) => {
 
 export const get_all_users = async (req, res) => {
     reqInfo(req)
+    let { user } = req.headers
     try {
         const { error, value} = getAllUserSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
+
+        if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
 
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
