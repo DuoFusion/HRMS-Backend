@@ -14,12 +14,12 @@ export const addHolidaySchema = Joi.object({
 
 
 export const getHolidaytSchema = Joi.object().keys({
-    id: Joi.string().required(),
+    holidayId: Joi.string().required(),
 });
 
 
 export const updateHolidaySchema = Joi.object().keys({
-    id: Joi.string().required(),
+    holidayId: Joi.string().required(),
     title: Joi.string().trim(),
     description: Joi.string().allow("", null),
     date: Joi.date(),
@@ -29,7 +29,7 @@ export const updateHolidaySchema = Joi.object().keys({
 });
 
 export const deleteHolidaySchema = Joi.object().keys({
-    id: Joi.string().required()
+    holidayId: Joi.string().required()
 })
 
 export const getAllHolidaySchema = Joi.object().keys({

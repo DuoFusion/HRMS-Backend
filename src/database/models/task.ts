@@ -18,6 +18,7 @@ const TaskSchema = new mongoose.Schema({
         text: { type: String },
         type: { type: String, enum: Object.values(TASK_TYPE) },
     }],
+
     isDeleted: { type: Boolean, default: false }
 }, {
     timestamps: true, versionKey: false

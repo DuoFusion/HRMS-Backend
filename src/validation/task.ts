@@ -3,7 +3,7 @@ import { TASK_STATUS, TASK_TYPE } from '../common';
 
 export const addTaskSchema = joi.object().keys({
     title: joi.string().required(),
-    userId: joi.string().required(),
+        userId: joi.string().required(),
     description: joi.string(),
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
     startDate: joi.string(),
@@ -43,10 +43,10 @@ export const updateTaskSchema = joi.object().keys({
 
 
 export const deleteTaskSchema = joi.object().keys({
-    id: joi.string().required(),
+    taskId: joi.string().required(),
 })
 
-export const getAllTasksSchema = joi.object().keys({
+export const getAllTasksSchema = joi.object({
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
     startDate: joi.string(),
     endDate: joi.string(),
@@ -66,6 +66,7 @@ export const getAllTasksSchema = joi.object().keys({
     ).optional()
 })
 
+
 export const getTaskByIdSchema = joi.object().keys({
-    id: joi.string().required(),
+    taskId: joi.string().required(),
 })
