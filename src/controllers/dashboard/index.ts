@@ -34,35 +34,89 @@ export const get_dashboard = async (req, res) => {
 export const upcoming_birthday_data_all_user = async (user) => {
     try {
         const today = new Date();
-        const next7 = new Date();
-        next7.setDate(today.getDate() + 7);
-
-        const year = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        const currentDay = today.getDate();
 
         return await userModel.aggregate([
             {
                 $addFields: {
-                    birthday: {
-                        $dateFromParts: {
-                            year,
-                            month: { $month: "$dob" },
-                            day: { $dayOfMonth: "$dob" }
+                    birthMonth: { $month: "$dob" },
+                    birthDay: { $dayOfMonth: "$dob" },
+
+                    isToday: {
+                        $and: [
+                            { $eq: [{ $month: "$dob" }, currentMonth] },
+                            { $eq: [{ $dayOfMonth: "$dob" }, currentDay] }
+                        ]
+                    },
+                    
+                    daysUntilBirthday: {
+                        $let: {
+                            vars: {
+                                monthDiff: { $subtract: [{ $month: "$dob" }, currentMonth] },
+                                dayDiff: { $subtract: [{ $dayOfMonth: "$dob" }, currentDay] }
+                            },
+                            in: {
+                                $cond: {
+                                    if: { $eq: ["$$monthDiff", 0] },
+                                    then: {
+                                        $cond: {
+                                            if: { $gte: ["$$dayDiff", 0] },
+                                            then: "$$dayDiff",
+                                            else: { $add: [365, "$$dayDiff"] }
+                                        }
+                                    },
+                                    else: {
+                                        $cond: {
+                                            if: { $gt: ["$$monthDiff", 0] },
+                                            then: { $add: ["$$dayDiff", { $multiply: ["$$monthDiff", 30] }] },
+                                            else: { $add: ["$$dayDiff", { $multiply: [{ $add: [12, "$$monthDiff"] }, 30] }] } // Next year
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             },
             {
                 $match: {
-                    birthday: { $gte: today, $lte: next7 },
                     isDeleted: false,
                     isBlocked: false,
                 }
             },
-            { $project: { firstName: 1, lastName: 1, dob: 1 } },
-            { $sort: { birthday: 1 } }
+            {
+                $addFields: {
+                    isValidUpcoming: {
+                        $or: [
+                            { $gt: ["$daysUntilBirthday", 0] },
+                            { $eq: ["$daysUntilBirthday", 0] }
+                        ]
+                    }
+                }
+            },
+            {
+                $match: {
+                    isValidUpcoming: true
+                }
+            },
+            { 
+                $project: { 
+                    _id: 0,
+                    fullName: 1,
+                    profilePhoto: 1,
+                    birthMonth: 1,
+                    birthDay: 1,
+                    daysUntilBirthday: 1,
+                    isToday: 1
+                } 
+            },
+            { $sort: { daysUntilBirthday: 1 } },
+            { $limit: 4 }
         ]);
     } catch (error) {
         console.log(error);
+        throw error;
     }
 };
 
