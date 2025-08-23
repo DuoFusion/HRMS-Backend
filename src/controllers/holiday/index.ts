@@ -63,7 +63,6 @@ export const get_all_holiday = async (req, res) => {
         let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false;
-
         if (search) {
             criteria.$or = [
                 { title: { $regex: search, $options: 'si' } },

@@ -14,7 +14,7 @@ import { boardRoutes } from './dashboard'
 import { attendanceRoutes } from './attendance'
 import { adminJWT } from '../helper'
 import { invoiceRoutes } from './invoice'
-
+import { reviewRoutes } from './review'
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -29,8 +29,9 @@ router.use('/leave', leaveRoutes)
 router.use('/task', taskRoutes)
 router.use('/holiday', holidayRoutes)
 router.use('/dashboard', boardRoutes)
-router.use('/company',companyRoutes)
+router.use('/company', companyRoutes)
 router.use('/attendance', attendanceRoutes)
 router.use('/invoice', invoiceRoutes)
+router.use('/review', reviewRoutes)
 
 export { router }

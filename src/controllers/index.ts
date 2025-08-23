@@ -12,3 +12,4 @@ export * as holidayController from './holiday'
 export * as dashboardController from './dashboard'
 export * as attendanceController from "./attendance"
 export * as invoiceController from "./invoice"
+export * as reviewController from "./review"
