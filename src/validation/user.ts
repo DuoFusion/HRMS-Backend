@@ -38,7 +38,7 @@ export const editUserSchema = Joi.object().keys({
     userId: Joi.string().required(),
     firstName: Joi.string().optional(),
     lastName: Joi.string().optional(),    
-    dob: Joi.string().required(),
+    dob: Joi.string().optional(),
     email: Joi.string().email().optional(),
     phoneNumber: Joi.string().optional(),
     password: Joi.string().optional(),
@@ -58,9 +58,9 @@ export const editUserSchema = Joi.object().keys({
         relation: Joi.string().valid(...Object.values(RELATION)).optional(),
     }).optional(),
     workingTime: Joi.object({
-        start: Joi.string().required(),
-        end: Joi.string().required()
-    }).required(),
+        start: Joi.string().optional(),
+        end: Joi.string().optional()
+    }).optional(),
     aadharCardNumber: Joi.string().optional(),
     panCardNumber: Joi.string().optional(),
     position: Joi.string().optional(),
