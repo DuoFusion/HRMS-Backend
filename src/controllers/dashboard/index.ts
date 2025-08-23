@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
-import { apiResponse, LEAVE_STATUS } from "../../common";
-import { findAllWithPopulate, getData, responseMessage } from "../../helper";
+import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
+import { responseMessage } from "../../helper";
 import { leaveModel, taskModel, userModel } from "../../database";
+
+const ObjectId = require('mongoose').Types.ObjectId;
 
 export const get_dashboard = async (req, res) => {
     let { user } = req.headers
@@ -24,105 +25,126 @@ export const get_dashboard = async (req, res) => {
         ]);
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("dashboard"), { sec1, sec2, sec3 }, {}));
     } catch (error) {
+        console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
 
 export const upcoming_birthday_data_all_user = async (user) => {
-    const today = new Date();
-    const next7 = new Date();
-    next7.setDate(today.getDate() + 7);
+    try {
+        const today = new Date();
+        const next7 = new Date();
+        next7.setDate(today.getDate() + 7);
 
-    const year = today.getFullYear();
+        const year = today.getFullYear();
 
-    return await userModel.aggregate([
-        {
-            $addFields: {
-                birthday: {
-                    $dateFromParts: {
-                        year,
-                        month: { $month: "$dob" },
-                        day: { $dayOfMonth: "$dob" }
+        return await userModel.aggregate([
+            {
+                $addFields: {
+                    birthday: {
+                        $dateFromParts: {
+                            year,
+                            month: { $month: "$dob" },
+                            day: { $dayOfMonth: "$dob" }
+                        }
                     }
                 }
-            }
-        },
-        {
-            $match: {
-                birthday: { $gte: today, $lte: next7 }
-            }
-        },
-        { $project: { firstName: 1, lastName: 1, dob: 1 } },
-        { $sort: { birthday: 1 } }
-    ]);
+            },
+            {
+                $match: {
+                    birthday: { $gte: today, $lte: next7 },
+                    isDeleted: false,
+                    isBlocked: false,
+                }
+            },
+            { $project: { firstName: 1, lastName: 1, dob: 1 } },
+            { $sort: { birthday: 1 } }
+        ]);
+    } catch (error) {
+        console.log(error);
+    }
 };
 
 export const task_data_per_day = async (user) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    let match: any = {}
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
 
-    return await taskModel.aggregate([
-        {
-            $match: {
-                isDeleted: false,
-                startDate: { $gte: today, $lt: tomorrow }
-            }
-        },
-        {
-            $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-            }
-        },
-        { $unwind: "$user" },
-        {
-            $project: {
-                title: 1,
-                description: 1,
-                status: 1,
-                "user.firstName": 1,
-                "user.lastName": 1
-            }
-        },
-        { $sort: { startDate: 1 } }
-    ]);
+        if (user.role !== ROLES.ADMIN) match.userId = new ObjectId(user._id)
+
+        return await taskModel.aggregate([
+            {
+                $match: {
+                    ...match,
+                    isDeleted: false,
+                    isBlocked: false,
+                    startDate: { $gte: today }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $project: {
+                    title: 1,
+                    description: 1,
+                    status: 1,
+                    "user.firstName": 1,
+                    "user.lastName": 1
+                }
+            },
+            { $sort: { startDate: 1 } }
+        ]);
+    } catch (error) {
+        console.log(error);
+    }
 };
 
 
 export const leave_data_approve_by_admin = async (user) => {
-    return await leaveModel.aggregate([
-        {
-            $match: {
-                isDeleted: false,
-                status: LEAVE_STATUS.APPROVED,
-                endDate: { $gte: new Date() }
-            }
-        },
-        {
-            $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-            }
-        },
-        { $unwind: "$user" },
-        {
-            $project: {
-                startDate: 1,
-                endDate: 1,
-                type: 1,
-                reason: 1,
-                status: 1,
-                "user.firstName": 1,
-                "user.lastName": 1
-            }
-        },
-        { $sort: { startDate: 1 } }
-    ]);
+    try {
+        return await leaveModel.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    isBlocked: false,
+                    status: LEAVE_STATUS.APPROVED,
+                    endDate: { $gte: new Date() }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $project: {
+                    startDate: 1,
+                    endDate: 1,
+                    type: 1,
+                    reason: 1,
+                    status: 1,
+                    "user.firstName": 1,
+                    "user.lastName": 1
+                }
+            },
+            { $sort: { startDate: 1 } }
+        ]);
+    } catch (error) {
+        console.log(error);
+    }
 };

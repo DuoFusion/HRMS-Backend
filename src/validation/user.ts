@@ -78,8 +78,8 @@ export const getUserSchema = Joi.object().keys({
 });
 
 export const getAllUserSchema = Joi.object().keys({
-    page: Joi.number().integer(),
-    limit: Joi.number().integer(),
+    page: Joi.number().integer().optional(),
+    limit: Joi.number().integer().optional(),
     statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
     search: Joi.string().optional(),

@@ -1,7 +1,8 @@
 import { holidayModel } from "../../database";
 import { apiResponse } from "../../common";
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
-import { addHolidaySchema, deleteHolidaySchema, getHolidaytSchema, updateHolidaySchema } from "../../validation";
+import { addHolidaySchema, deleteHolidaySchema, getAllHolidaySchema, getHolidaySchema, updateHolidaySchema } from "../../validation";
+
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export const add_holiday = async (req, res) => {
@@ -52,12 +53,14 @@ export const delete_holiday_by_id = async (req, res) => {
     }
 }
 
-
-
 export const get_all_holiday = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
+        const { error, value } = getAllHolidaySchema.validate(req.query)
+        if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
+
+        let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+
         criteria.isDeleted = false;
 
         if (search) {
@@ -67,7 +70,10 @@ export const get_all_holiday = async (req, res) => {
                 { type: { $regex: search, $options: 'si' } }
             ];
         }
+
+        criteria.isBlocked = activeFilter === true ? true : false
         options.sort = { createdAt: -1 }
+
         if (page && limit) {
             options.skip = (parseInt(page) - 1) * parseInt(limit);
             options.limit = parseInt(limit);
@@ -93,12 +99,10 @@ export const get_all_holiday = async (req, res) => {
     }
 }
 
-
-
 export const get_holiday_by_id = async (req, res) => {
     reqInfo(req)
     try {
-        const { error, value } = getHolidaytSchema.validate(req.params)
+        const { error, value } = getHolidaySchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         const response = await getFirstMatch(holidayModel, { _id: new ObjectId(value.holidayId), isDeleted: false }, {}, {})

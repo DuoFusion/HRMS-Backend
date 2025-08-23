@@ -12,11 +12,9 @@ export const addHolidaySchema = Joi.object({
     isDeleted: Joi.string().optional()
 });
 
-
-export const getHolidaytSchema = Joi.object().keys({
+export const getHolidaySchema = Joi.object().keys({
     holidayId: Joi.string().required(),
 });
-
 
 export const updateHolidaySchema = Joi.object().keys({
     holidayId: Joi.string().required(),
@@ -33,12 +31,8 @@ export const deleteHolidaySchema = Joi.object().keys({
 })
 
 export const getAllHolidaySchema = Joi.object().keys({
-    title: Joi.string().required(),
-    description: Joi.string().required(),
-    date: Joi.string().required(),
-    type: Joi.string().valid(...Object.values(HOLIDAY_TYPE)).optional(),
-    isRecurring: Joi.boolean().required(),
-    createdBy: Joi.string().required(),
-    updatedBy: Joi.string().required(),
-    isDeleted: Joi.string().required()
+    page: Joi.number().integer().optional(),
+    limit: Joi.number().integer().optional(),
+    search: Joi.string().optional(),
+    activeFilter: Joi.boolean().optional()
 })

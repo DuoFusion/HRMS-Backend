@@ -44,13 +44,15 @@ export const delete_task_by_id = async (req, res) => {
     reqInfo(req);
     try {
         const { error, value } = deleteTaskSchema.validate(req.params);
-        if (error) {return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
+        if (error) {
+            return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
         }
-        const response = await updateData(taskModel,{ _id: new ObjectId(value.taskId), isDeleted: false },{ isDeleted: true }, { new: true });
-        if (!response) { return res.status(404).json(new apiResponse(404, responseMessage.getDataNotFound("task"), {}, {}));
+        const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, { isDeleted: true }, { new: true });
+        if (!response) {
+            return res.status(404).json(new apiResponse(404, responseMessage.getDataNotFound("task"), {}, {}));
         }
 
-        return res.status(200).json( new apiResponse(200, responseMessage.deleteDataSuccess("task"), response, {}));
+        return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("task"), response, {}));
     } catch (error) {
         console.log("err", error);
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
@@ -59,21 +61,21 @@ export const delete_task_by_id = async (req, res) => {
 
 export const get_all_task = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search } = req.query, criteria: any = {}, options: any = { lean: true };
-
     try {
         const { error, value } = getAllTasksSchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
-        let criteria: any = { isDeleted: false };
+        let { page, limit, search } = value, criteria: any = { }, options: any = { lean: true };
 
+        criteria.isDeleted = false
+        
         if (search) {
             criteria.$or = [
-                { title: { $regex: search, $options: "i" } },
-                { description: { $regex: search, $options: "i" } },
-                { status: { $regex: search, $options: "i" } },
-                { text: { $regex: search, $options: "i" } },
-                { type: { $regex: search, $options: "i" } },
+                { title: { $regex: search, $options: "si" } },
+                { description: { $regex: search, $options: "si" } },
+                { status: { $regex: search, $options: "si" } },
+                { text: { $regex: search, $options: "si" } },
+                { type: { $regex: search, $options: "si" } },
             ]
         }
 

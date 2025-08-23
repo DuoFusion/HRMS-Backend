@@ -68,8 +68,12 @@ export const delete_role_by_id = async (req, res) => {
 
 export const get_all_role = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search, activeFilter } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
+        const { error, value } = deleteRoleSchema.validate(req.query)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+            
+        let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+
         criteria.isDeleted = false;
 
         if (search) {

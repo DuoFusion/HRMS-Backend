@@ -8,7 +8,6 @@ const ObjectId = require("mongoose").Types.ObjectId
 export const add_user = async (req, res) => {
     reqInfo(req)
     try {
-
         const { error, value } = addUserSchema.validate(req.body)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
@@ -50,8 +49,8 @@ export const edit_user_by_id = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, {}, {});
-        if (!user ) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("User"), {}, {}));
-        
+        if (!user) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("User"), {}, {}));
+
         let isExist = await getFirstMatch(userModel, { email: value.email, isDeleted: false, _id: { $ne: new ObjectId(value.userId) } }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("Email"), {}, {}));
 
@@ -72,9 +71,9 @@ export const edit_user_by_id = async (req, res) => {
         }
 
         if (value.firstName) value.fullName = value.firstName + " " + user.lastName
-        
+
         if (value.lastName) value.fullName = user.firstName + " " + value.lastName
-        
+
         if (value.firstName && value.lastName) value.fullName = value.firstName + " " + value.lastName
 
         const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
@@ -106,17 +105,19 @@ export const get_all_users = async (req, res) => {
     try {
         const { error, value } = getAllUserSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-            
-        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
+
+        let { page, limit, search, roleFilter, activeFilter, } = value, criteria: any = { }, options: any = {};
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
-
+        
+        criteria.isDeleted = false
+        
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
 
         criteria.isBlocked = activeFilter === true ? true : false
-        
+
         if (search) {
             criteria.$or = [
                 { name: { $regex: search, $options: 'si' } },
