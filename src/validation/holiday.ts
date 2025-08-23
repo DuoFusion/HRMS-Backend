@@ -7,13 +7,10 @@ export const addHolidaySchema = Joi.object({
     date: Joi.date().iso().required(),
     type: Joi.string().valid(...Object.values(HOLIDAY_TYPE)).optional(),
     isRecurring: Joi.boolean().required(),
-    createdBy: Joi.string().hex().length(24).optional(),
-    updatedBy: Joi.string().hex().length(24).optional(),
-    isDeleted: Joi.string().optional()
 });
 
 export const getHolidaySchema = Joi.object().keys({
-    holidayId: Joi.string().required(),
+    id: Joi.string().required(),
 });
 
 export const updateHolidaySchema = Joi.object().keys({
@@ -23,11 +20,10 @@ export const updateHolidaySchema = Joi.object().keys({
     date: Joi.date(),
     type: Joi.string().valid(...Object.values(HOLIDAY_TYPE)).optional(),
     isRecurring: Joi.boolean(),
-    updatedBy: Joi.string().optional(),
 });
 
 export const deleteHolidaySchema = Joi.object().keys({
-    holidayId: Joi.string().required()
+    id: Joi.string().required()
 })
 
 export const getAllHolidaySchema = Joi.object().keys({

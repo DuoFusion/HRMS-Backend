@@ -8,11 +8,10 @@ const ObjectId = require('mongoose').Types.ObjectId;
 export const add_holiday = async (req, res) => {
     reqInfo(req)
     try {
-        const body = req.body;
-        const { error, value } = addHolidaySchema.validate(body);
+        const { error, value } = addHolidaySchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const response = await createData(holidayModel, body);
+        const response = await createData(holidayModel, value);
 
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage.addDataSuccess('holiday'), response, {}));
@@ -25,11 +24,10 @@ export const add_holiday = async (req, res) => {
 export const edit_holiday_by_id = async (req, res) => {
     reqInfo(req)
     try {
-        const body = req.body
-        const { error, value } = updateHolidaySchema.validate(body)
+        const { error, value } = updateHolidaySchema.validate(req.body)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await updateData(holidayModel, { _id: new ObjectId(body.holidayId), isDeleted: false }, value, {});
+        const response = await updateData(holidayModel, { _id: new ObjectId(value.holidayId), isDeleted: false }, value, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('holiday'), {}, {}));
 
         return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('holiday'), response, {}))
@@ -44,7 +42,7 @@ export const delete_holiday_by_id = async (req, res) => {
     try {
         const { error, value } = deleteHolidaySchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-        
+
         const response = await updateData(holidayModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true }, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("holiday"), {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("holiday"), response, {}))
