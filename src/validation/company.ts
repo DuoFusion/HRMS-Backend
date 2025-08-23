@@ -41,8 +41,8 @@ export const getCompanySchema = Joi.object().keys({
 });
 
 export const getAllCompanySchema = Joi.object().keys({
-    page: Joi.number().integer().required(),
-    limit: Joi.number().integer().required(),
+    page: Joi.number().integer().optional(),
+    limit: Joi.number().integer().optional(),
     activeFilter: Joi.boolean().optional(),
     search: Joi.string().optional(),
 });

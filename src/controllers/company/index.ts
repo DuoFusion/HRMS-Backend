@@ -71,8 +71,12 @@ export const delete_company_by_id = async (req, res) => {
 
 export const get_all_company = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search, activeFilter } = req.query, criteria: any = {}, options: any = { lean: true };
     try {
+        const { error, value } = await getCompanySchema.validate(req.query)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+    
+        let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+        
         criteria.isDeleted = false;
 
         if (search) {
@@ -81,8 +85,8 @@ export const get_all_company = async (req, res) => {
                 { ownerName: { $regex: search, $options: 'si' } },
             ];
         }
-        
-        criteria.isBlocked = activeFilter == "true" ? true : false
+
+        criteria.isBlocked = activeFilter === true ? true : false
 
         options.sort = { createdAt: -1 }
 
@@ -90,7 +94,7 @@ export const get_all_company = async (req, res) => {
             options.skip = (parseInt(page) - 1) * parseInt(limit);
             options.limit = parseInt(limit);
         }
-        
+
         const response = await getDataWithSorting(companyModel, criteria, {}, options);
         const totalCount = await countData(companyModel, criteria);
 
