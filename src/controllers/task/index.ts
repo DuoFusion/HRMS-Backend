@@ -65,10 +65,10 @@ export const get_all_task = async (req, res) => {
         const { error, value } = getAllTasksSchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
-        let { page, limit, search } = value, criteria: any = { }, options: any = { lean: true };
+        let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false
-        
+
         if (search) {
             criteria.$or = [
                 { title: { $regex: search, $options: "si" } },

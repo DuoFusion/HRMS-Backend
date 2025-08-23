@@ -74,9 +74,9 @@ export const get_all_company = async (req, res) => {
     try {
         const { error, value } = await getCompanySchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-    
+
         let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
-        
+
         criteria.isDeleted = false;
 
         if (search) {

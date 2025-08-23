@@ -106,12 +106,12 @@ export const get_all_users = async (req, res) => {
         const { error, value } = getAllUserSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search, roleFilter, activeFilter, } = value, criteria: any = { }, options: any = {};
+        let { page, limit, search, roleFilter, activeFilter, } = value, criteria: any = {}, options: any = {};
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
-        
+
         criteria.isDeleted = false
-        
+
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
