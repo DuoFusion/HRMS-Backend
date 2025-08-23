@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { apiResponse } from "../../common";
+import { apiResponse, LEAVE_STATUS } from "../../common";
 import { findAllWithPopulate, getData, responseMessage } from "../../helper";
 import { leaveModel, taskModel, userModel } from "../../database";
 
@@ -95,11 +95,34 @@ export const task_data_per_day = async (user) => {
 
 
 export const leave_data_approve_by_admin = async (user) => {
-    return await findAllWithPopulate(
-        leaveModel,
-        { isApproved: true },
-        {},
-        {},
-        { path: "userId", select: "firstName lastName" }
-    );
+    return await leaveModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                status: LEAVE_STATUS.APPROVED,
+                endDate: { $gte: new Date() }
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "user"
+            }
+        },
+        { $unwind: "$user" },
+        {
+            $project: {
+                startDate: 1,
+                endDate: 1,
+                type: 1,
+                reason: 1,
+                status: 1,
+                "user.firstName": 1,
+                "user.lastName": 1
+            }
+        },
+        { $sort: { startDate: 1 } }
+    ]);
 };
