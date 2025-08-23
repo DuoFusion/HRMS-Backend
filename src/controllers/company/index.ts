@@ -118,7 +118,7 @@ export const get_all_company = async (req, res) => {
 export const get_company_by_id = async (req, res) => {
     reqInfo(req);
     try {
-        const { error, value } = getCompanySchema.validate(req.params)
+        const { error, value } = getAllCompanySchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         const response = await getFirstMatch(companyModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {});
