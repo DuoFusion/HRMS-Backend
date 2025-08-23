@@ -1,7 +1,7 @@
 import { companyModel } from "../../database";
 import { apiResponse } from "../../common";
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
-import { addCompanySchema, deleteCompanySchema, editCompanySchema, getAllCompanySchema, getCompanySchema } from "../../validation";
+import { addCompanySchema, deleteCompanySchema, editCompanySchema, getAllCompanySchema } from "../../validation";
 import { get } from "config";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -72,7 +72,7 @@ export const delete_company_by_id = async (req, res) => {
 export const get_all_company = async (req, res) => {
     reqInfo(req)
     try {
-        const { error, value } = await getCompanySchema.validate(req.query)
+        const { error, value } = await getAllCompanySchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
