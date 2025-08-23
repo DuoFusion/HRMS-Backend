@@ -7,7 +7,8 @@ export const addLeaveSchema = joi.object().keys({
     endDate: joi.date().required(),
     type: joi.string().valid(...Object.values(LEAVE_TYPE)).required(),
     reason: joi.string().required(),
-    dayType: joi.string().valid(...Object.values(LEAVE_DAY_TYPE)).default("full"),
+    status: joi.string().valid(...Object.values(LEAVE_STATUS)).default(LEAVE_STATUS.PENDING),
+dayType: { type: String, enum: Object.values(LEAVE_DAY_TYPE), default: LEAVE_DAY_TYPE.FULL }
 });
 
 export const updateLeaveSchema = joi.object().keys({

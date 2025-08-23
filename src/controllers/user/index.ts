@@ -71,17 +71,11 @@ export const edit_user_by_id = async (req, res) => {
             value.roleId = new ObjectId(role._id)
         }
 
-        if (value.firstName) {
-            value.fullName = value.firstName + " " + user.lastName
-        }
-
-        if (value.lastName) {
-            value.fullName = user.firstName + " " + value.lastName
-        }
-
-        if (value.firstName && value.lastName) {
-            value.fullName = value.firstName + " " + value.lastName
-        }
+        if (value.firstName) value.fullName = value.firstName + " " + user.lastName
+        
+        if (value.lastName) value.fullName = user.firstName + " " + value.lastName
+        
+        if (value.firstName && value.lastName) value.fullName = value.firstName + " " + value.lastName
 
         const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("User"), response, {}));
@@ -111,7 +105,6 @@ export const get_all_users = async (req, res) => {
     let { user } = req.headers
     try {
         const { error, value } = getAllUserSchema.validate(req.query)
-        console.log("active",value);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
             
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
