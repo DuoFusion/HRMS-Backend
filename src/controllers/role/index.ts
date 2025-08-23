@@ -1,7 +1,7 @@
 import { apiResponse } from "../../common";
 import { roleModel } from "../../database";
 import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
-import { addRoleSchema, deleteRoleSchema, editRoleSchema, getRoleSchema } from "../../validation";
+import { addRoleSchema, deleteRoleSchema, editRoleSchema, getAllRoleSchema, getRoleSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId
 
@@ -69,7 +69,7 @@ export const delete_role_by_id = async (req, res) => {
 export const get_all_role = async (req, res) => {
     reqInfo(req)
     try {
-        const { error, value } = deleteRoleSchema.validate(req.query)
+        const { error, value } = getAllRoleSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
