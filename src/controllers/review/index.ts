@@ -1,9 +1,7 @@
-import { Request, Response } from "express";
 import { apiResponse } from "../../common";
 import { countData, createData, getData, getDataWithSorting, reqInfo, responseMessage, updateData } from "../../helper";
 import { reviewModel } from "../../database";
 import { addReviewSchema, deleteReviewSchema, getAllReviewSchema, getReviewSchema, updateReviewSchema } from "../../validation";
-import { error } from "console";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -15,7 +13,8 @@ export const add_review = async (req, res) => {
 
         const newReview = await createData(reviewModel, value);
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Review"), newReview, {}));
-    } catch (err) {
+    } catch (error) {
+        console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
@@ -26,13 +25,13 @@ export const edit_review_by_id = async (req, res) => {
         const { error, value } = updateReviewSchema.validate(req.body);
         if (error) { return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {})); }
 
-        const updated = await updateData(reviewModel, { _id: new ObjectId(value.reviewId), isDeleted: false }, value);
+        const response = await updateData(reviewModel, { _id: new ObjectId(value.reviewId), isDeleted: false }, value);
 
-        if (!updated) { return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Review"), {}, {})); }
-
-        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("Review"), updated, {}));
-    } catch (err) {
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, err));
+        if (!response) { return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Review"), {}, {})); }
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("Review"), response, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
@@ -46,8 +45,9 @@ export const delete_review_by_id = async (req, res) => {
 
         if (!response) { return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Review"), {}, {})); }
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("Review"), response, {}));
-    } catch (err) {
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, err));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
 
