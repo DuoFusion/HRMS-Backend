@@ -9,11 +9,10 @@ const ObjectId = require('mongoose').Types.ObjectId;
 export const add_task = async (req, res) => {
     reqInfo(req)
     try {
-        const body = req.body;
-        const { error, value } = addTaskSchema.validate(body);
+        const { error, value } = addTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const response = await createData(taskModel, body);
+        const response = await createData(taskModel, value);
 
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage.addDataSuccess('task'), response, {}));
@@ -26,13 +25,11 @@ export const add_task = async (req, res) => {
 export const edit_task_by_id = async (req, res) => {
     reqInfo(req)
     try {
-        const body = req.body;
-        const { error, value } = updateTaskSchema.validate(body);
+        const { error, value } = updateTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const response = await updateData(taskModel, { _id: new ObjectId(body.taskId), isDeleted: false }, value, {});
+        const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}))
-
         return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('task'), response, {}))
     } catch (error) {
         console.error(error)
@@ -44,17 +41,14 @@ export const delete_task_by_id = async (req, res) => {
     reqInfo(req);
     try {
         const { error, value } = deleteTaskSchema.validate(req.params);
-        if (error) {
-            return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
-        }
-        const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, { isDeleted: true }, { new: true });
-        if (!response) {
-            return res.status(404).json(new apiResponse(404, responseMessage.getDataNotFound("task"), {}, {}));
-        }
+        if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
+
+        const response = await updateData(taskModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true }, { new: true });
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage.getDataNotFound("task"), {}, {}));
 
         return res.status(200).json(new apiResponse(200, responseMessage.deleteDataSuccess("task"), response, {}));
     } catch (error) {
-        console.log("err", error);
+        console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
     }
 };
@@ -63,7 +57,7 @@ export const get_all_task = async (req, res) => {
     reqInfo(req)
     try {
         const { error, value } = getAllTasksSchema.validate(req.query)
-        if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
+        if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
 
         let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
 
@@ -92,9 +86,11 @@ export const get_all_task = async (req, res) => {
             page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
         }
 
-        return res.status(200).json(
-            new apiResponse(200, responseMessage?.getDataSuccess("tasks"), { task_data: response, totalData: totalCount, state: stateObj, }, {})
-        )
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("tasks"), {
+            task_data: response,
+            totalData: totalCount,
+            state: stateObj
+        }, {}))
     } catch (error) {
         console.log(error)
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
@@ -108,7 +104,7 @@ export const get_task_by_id = async (req, res) => {
         const { error, value } = getTaskByIdSchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await getFirstMatch(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {})
+        const response = await getFirstMatch(taskModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("task"), {}, {}))
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("task"), response, {}))

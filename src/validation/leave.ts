@@ -24,7 +24,7 @@ export const updateLeaveSchema = joi.object().keys({
 });
 
 export const deleteLeaveSchema = joi.object().keys({
-    leaveId: joi.string().required(),
+    id: joi.string().required(),
 });
 
 export const getAllLeavesSchema = joi.object().keys({

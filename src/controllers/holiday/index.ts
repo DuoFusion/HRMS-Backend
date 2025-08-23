@@ -44,7 +44,8 @@ export const delete_holiday_by_id = async (req, res) => {
     try {
         const { error, value } = deleteHolidaySchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
-        const response = await updateData(holidayModel, { _id: new ObjectId(value.holidayId), isDeleted: false }, { isDeleted: true }, {})
+        
+        const response = await updateData(holidayModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true }, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("holiday"), {}, {}))
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("holiday"), response, {}))
     } catch (error) {
@@ -105,7 +106,7 @@ export const get_holiday_by_id = async (req, res) => {
         const { error, value } = getHolidaySchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await getFirstMatch(holidayModel, { _id: new ObjectId(value.holidayId), isDeleted: false }, {}, {})
+        const response = await getFirstMatch(holidayModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("holiday"), {}, {}))
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("holiday"), response, {}))
