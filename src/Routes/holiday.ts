@@ -1,16 +1,15 @@
 import Router from 'express'
 import { holidayController } from '../controllers'
-import { adminJWT, updateData } from '../helper'
+import { adminJWT, VALIDATE_ROLE } from '../helper'
+import { ROLES } from '../common';
 
 const router = Router();
 
-router.get('/', holidayController.get_all_holiday)
-router.get('/:holidayId', holidayController.get_holiday_by_id)
-
-
 router.use(adminJWT)
-router.post('/add', holidayController.add_holiday)
-router.post('/edit', holidayController.edit_holiday_by_id)
-router.delete('/delete/:holidayId', holidayController.delete_holiday_by_id)
+router.post('/add', VALIDATE_ROLE([ROLES.ADMIN]), holidayController.add_holiday)
+router.post('/edit', VALIDATE_ROLE([ROLES.ADMIN]), holidayController.edit_holiday_by_id)
+router.delete('/:id', VALIDATE_ROLE([ROLES.ADMIN]), holidayController.delete_holiday_by_id)
+router.get('/all', VALIDATE_ROLE([ROLES.ADMIN]), holidayController.get_all_holiday)
+router.get('/:id', VALIDATE_ROLE([ROLES.ADMIN]), holidayController.get_holiday_by_id)
 
 export const holidayRoutes = router

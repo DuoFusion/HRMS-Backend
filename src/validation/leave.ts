@@ -8,12 +8,12 @@ export const addLeaveSchema = joi.object().keys({
     type: joi.string().valid(...Object.values(LEAVE_TYPE)).required(),
     reason: joi.string().required(),
     status: joi.string().valid(...Object.values(LEAVE_STATUS)).default(LEAVE_STATUS.PENDING),
-dayType: { type: String, enum: Object.values(LEAVE_DAY_TYPE), default: LEAVE_DAY_TYPE.FULL }
+    dayType: { type: String, enum: Object.values(LEAVE_DAY_TYPE), default: LEAVE_DAY_TYPE.FULL }
 });
 
 export const updateLeaveSchema = joi.object().keys({
-    userId: joi.string().required(),
     leaveId: joi.string().required(),
+    userId: joi.string().optional(),
     startDate: joi.date().optional(),
     endDate: joi.date().optional(),
     type: joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
@@ -24,7 +24,7 @@ export const updateLeaveSchema = joi.object().keys({
 });
 
 export const deleteLeaveSchema = joi.object().keys({
-    leaveId: joi.string().required(),
+    id: joi.string().required(),
 });
 
 export const getAllLeavesSchema = joi.object().keys({

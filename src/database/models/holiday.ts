@@ -1,6 +1,5 @@
-import { bool, boolean, object, ref, string } from "joi";
 import { HOLIDAY_TYPE } from "../../common";
-import mongoose from "mongoose";
+const mongoose = require('mongoose')
 
 const holiDaySchema = new mongoose.Schema({
     title: { type: String },
@@ -11,8 +10,6 @@ const holiDaySchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     isDeleted: { type: Boolean, default: false }
-}, {
-    timestamps: true, versionKey: false
-});
+}, { timestamps: true, versionKey: false });
 
 export const holidayModel = mongoose.model('holiday', holiDaySchema)
