@@ -188,8 +188,8 @@ export const get_all_attendance = async (req, res) => {
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
-        if (dateFilter) criteria.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
-        
+        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+
         if (startDate && endDate) criteria.date = { $gte: startDate, $lte: endDate }
 
         if (statusFilter) criteria.status = statusFilter
