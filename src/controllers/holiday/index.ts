@@ -30,7 +30,7 @@ export const edit_holiday_by_id = async (req, res) => {
         const response = await updateData(holidayModel, { _id: new ObjectId(value.holidayId), isDeleted: false }, value, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('holiday'), {}, {}));
 
-        return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('holiday'), response, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('holiday'), response, {}))
     } catch (error) {
         console.error(error)
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
