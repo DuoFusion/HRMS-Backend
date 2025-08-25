@@ -9,6 +9,7 @@ const holiDaySchema = new mongoose.Schema({
     isRecurring: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+    isBlocked: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true, versionKey: false });
 
