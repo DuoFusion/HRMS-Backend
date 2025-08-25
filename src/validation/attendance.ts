@@ -19,8 +19,9 @@ export const breakOutSchema = Joi.object({
 })
 
 export const getAttendanceSchema = Joi.object({
-    page: Joi.number().min(1).optional(),
-    limit: Joi.number().min(1).max(100).optional(),
+    page: Joi.number().integer().optional(),
+    limit: Joi.number().integer().optional(),
+    userFilter: Joi.string().optional(),
     startDate: Joi.date().optional(),
     endDate: Joi.date().optional(),
     status: Joi.string().valid("Present", "Absent", "Half Day", "Leave").optional(),
