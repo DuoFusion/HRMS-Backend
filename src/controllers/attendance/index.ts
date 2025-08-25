@@ -117,7 +117,6 @@ export const punch_out = async (req, res) => {
     }
 };
 
-// Update break minutes
 export const update_break = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers
@@ -142,11 +141,7 @@ export const update_break = async (req, res) => {
             productionHours
         };
 
-        const response = await updateData(
-            attendanceModel,
-            { _id: attendance._id },
-            updateBreakData
-        );
+        const response = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, updateBreakData);
 
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
 
@@ -219,7 +214,6 @@ export const get_all_attendance = async (req, res) => {
     }
 };
 
-// Get all attendance records (Admin only)
 export const getAllAttendance = async (req, res) => {
     reqInfo(req);
     try {
@@ -291,7 +285,6 @@ export const getAllAttendance = async (req, res) => {
     }
 };
 
-// Get attendance by ID
 export const getAttendanceById = async (req, res) => {
     reqInfo(req);
     try {
@@ -325,7 +318,6 @@ export const getAttendanceById = async (req, res) => {
     }
 };
 
-// Update attendance record (Admin only)
 export const updateAttendance = async (req, res) => {
     reqInfo(req);
     try {
@@ -392,7 +384,6 @@ export const updateAttendance = async (req, res) => {
     }
 };
 
-// Delete attendance record (Admin only)
 export const deleteAttendance = async (req, res) => {
     reqInfo(req);
     try {

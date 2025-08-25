@@ -11,6 +11,7 @@ const userSchema: any = new mongoose.Schema({
     displayPassword: { type: String },
     salary: { type: Number },
     dob: { type: Date },
+    joiningDate: { type: Date },
     role: { type: String, enum: Object.values(ROLES) },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "role" },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
