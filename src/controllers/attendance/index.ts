@@ -207,19 +207,7 @@ export const get_all_attendance = async (req, res) => {
 
         const formattedResponse = response.map(attendance => ({
             ...attendance,
-            checkIn: formatTimeForResponse(attendance.checkIn),
-            checkOut: formatTimeForResponse(attendance.checkOut),
             date: formatDateForResponse(attendance.date),
-            sessions: Array.isArray(attendance.sessions) ? attendance.sessions.map((s: any) => ({
-                ...s,
-                checkIn: formatTimeForResponse(s.checkIn),
-                checkOut: formatTimeForResponse(s.checkOut),
-                breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
-                    ...b,
-                    breakIn: formatTimeForResponse(b.breakIn),
-                    breakOut: formatTimeForResponse(b.breakOut)
-                })) : []
-            })) : []
         }))
 
         const stateObj = {
