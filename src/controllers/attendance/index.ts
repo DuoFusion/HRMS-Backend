@@ -1,6 +1,6 @@
 import { attendanceModel, userModel, companyModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, formatDateForResponse, formatTimeForResponse, getDataWithSorting, getEndOfDayIst, getFirstMatch, getHoursDifference, getStartOfDayIst, parseIstTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponse, formatTimeForResponse, getDataWithSorting, getEndOfDayIst, getFirstMatch, getHoursDifference, getStartOfDayIst, parseIstTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
 import { checkInSchema, checkOutSchema, updateBreakSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -171,39 +171,36 @@ export const get_all_attendance = async (req, res) => {
         const { error, value } = getAttendanceSchema.validate(req.query);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        criteria.isDeleted = false
+        let { userFilter, startDate, endDate } = req.query
 
-        if (value.search) {
-            criteria.$or = [
-                { remarks: { $regex: value.search, $options: 'si' } }
-            ];
-        }
+        criteria.isDeleted = false
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
 
-        if (value.startDate && value.endDate) {
-            const startDate = getStartOfDayIst(new Date(value.startDate));
-            const endDate = getEndOfDayIst(new Date(value.endDate));
-            criteria.date = { $gte: startDate, $lte: endDate };
-        }
+        if (userFilter) criteria.userId = new ObjectId(userFilter)
 
-        options.sort = { date: -1 };
+        if (startDate && endDate) criteria.date = { $gte: startDate, $lte: endDate }
+
+        options.sort = { date: -1 }
 
         if (value.page && value.limit) {
             options.skip = (parseInt(value.page) - 1) * parseInt(value.limit);
             options.limit = parseInt(value.limit);
         }
 
-        const response = await getDataWithSorting(attendanceModel, criteria, {}, options);
+        let populate = [
+            { path: "userId", select: "fullName" },
+        ];
+
+        const response = await findAllWithPopulateWithSorting(attendanceModel, criteria, {}, options, populate);
         const totalCount = await countData(attendanceModel, criteria);
 
-        // Format response with IST times
         const formattedResponse = response.map(attendance => ({
-            ...attendance.toObject(),
+            ...attendance,
             checkIn: formatTimeForResponse(attendance.checkIn),
             checkOut: formatTimeForResponse(attendance.checkOut),
             date: formatDateForResponse(attendance.date)
-        }));
+        }))
 
         const stateObj = {
             page: parseInt(value.page) || 1,
