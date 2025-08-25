@@ -178,17 +178,21 @@ export const get_all_attendance = async (req, res) => {
         const { error, value } = getAttendanceSchema.validate(req.query);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        let { userFilter, startDate, endDate } = req.query
+        let { userFilter, startDate, endDate, statusFilter, dateFilter } = req.query
 
         criteria.isDeleted = false
+
+        options.sort = { date: -1 }
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
+        if (dateFilter) criteria.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+        
         if (startDate && endDate) criteria.date = { $gte: startDate, $lte: endDate }
 
-        options.sort = { date: -1 }
+        if (statusFilter) criteria.status = statusFilter
 
         if (value.page && value.limit) {
             options.skip = (parseInt(value.page) - 1) * parseInt(value.limit);

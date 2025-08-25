@@ -24,7 +24,8 @@ export const getAttendanceSchema = Joi.object({
     userFilter: Joi.string().optional(),
     startDate: Joi.date().optional(),
     endDate: Joi.date().optional(),
-    status: Joi.string().valid("Present", "Absent", "Half Day", "Leave").optional(),
+    statusFilter: Joi.string().valid("Present", "Absent", "Half Day", "Leave").optional(),
+    dateFilter: Joi.string().valid("asc", "desc").optional(),
     search: Joi.string().optional().allow('', null)
 })
 
