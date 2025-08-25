@@ -19,7 +19,8 @@ export const updateHolidaySchema = Joi.object().keys({
     description: Joi.string().allow("", null),
     date: Joi.date(),
     type: Joi.string().valid(...Object.values(HOLIDAY_TYPE)).optional(),
-    isRecurring: Joi.boolean(),
+    isRecurring: Joi.boolean().optional(),
+    isBlocked: Joi.boolean().optional(),
 });
 
 export const deleteHolidaySchema = Joi.object().keys({
