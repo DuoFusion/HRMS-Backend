@@ -80,7 +80,6 @@ export const punch_in = async (req, res) => {
         const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
         const formattedResponse = {
             ...baseResponse,
-            checkIn: formatTimeForResponse(baseResponse.checkIn),
             date: formatDateForResponse(baseResponse.date)
         };
 
@@ -162,8 +161,6 @@ export const punch_out = async (req, res) => {
         const baseResponse2: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
         const formattedResponse = {
             ...baseResponse2,
-            checkIn: formatTimeForResponse(baseResponse2.checkIn),
-            checkOut: formatTimeForResponse(baseResponse2.checkOut),
             date: formatDateForResponse(baseResponse2.date)
         };
 
@@ -209,78 +206,6 @@ export const get_all_attendance = async (req, res) => {
             ...attendance,
             date: formatDateForResponse(attendance.date),
         }))
-
-        const stateObj = {
-            page: parseInt(value.page) || 1,
-            limit: parseInt(value.limit) || totalCount,
-            page_limit: Math.ceil(totalCount / (parseInt(value.limit) || totalCount)) || 1,
-        };
-
-        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), {
-            attendance_data: formattedResponse || [],
-            totalData: totalCount,
-            state: stateObj
-        }, {}));
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
-    }
-};
-
-export const getAllAttendance = async (req, res) => {
-    reqInfo(req);
-    try {
-        const { error, value } = getAttendanceSchema.validate(req.query);
-        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
-        let criteria: any = { isDeleted: false };
-        let options: any = {};
-
-        if (value.startDate && value.endDate) {
-            const startDate = getStartOfDayIst(new Date(value.startDate));
-            const endDate = getEndOfDayIst(new Date(value.endDate));
-            criteria.date = { $gte: startDate, $lte: endDate };
-        }
-
-        if (value.status) criteria.status = value.status;
-
-        if (value.userId) criteria.userId = new ObjectId(value.userId);
-
-        if (value.search) {
-            criteria.$or = [
-                { remarks: { $regex: value.search, $options: 'si' } }
-            ];
-        }
-
-        options.sort = { createdAt: -1 };
-
-        if (value.page && value.limit) {
-            options.skip = (parseInt(value.page) - 1) * parseInt(value.limit);
-            options.limit = parseInt(value.limit);
-        }
-
-        const response = await getDataWithSorting(attendanceModel, criteria, {
-            path: 'userId',
-            select: 'firstName lastName fullName email department designation'
-        }, options);
-        const totalCount = await countData(attendanceModel, criteria);
-
-        const formattedResponse = response.map(attendance => ({
-            ...attendance.toObject(),
-            checkIn: formatTimeForResponse(attendance.checkIn),
-            checkOut: formatTimeForResponse(attendance.checkOut),
-            date: formatDateForResponse(attendance.date),
-            sessions: Array.isArray((attendance as any).sessions) ? (attendance as any).sessions.map((s: any) => ({
-                ...s,
-                checkIn: formatTimeForResponse(s.checkIn),
-                checkOut: formatTimeForResponse(s.checkOut),
-                breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
-                    ...b,
-                    breakIn: formatTimeForResponse(b.breakIn),
-                    breakOut: formatTimeForResponse(b.breakOut)
-                })) : []
-            })) : []
-        }));
 
         const stateObj = {
             page: parseInt(value.page) || 1,
@@ -416,19 +341,7 @@ export const get_today_attendance = async (req, res) => {
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
         const formatted = {
             ...base,
-            checkIn: formatTimeForResponse(base.checkIn),
-            checkOut: formatTimeForResponse(base.checkOut),
             date: formatDateForResponse(base.date),
-            sessions: Array.isArray(base.sessions) ? base.sessions.map((s: any) => ({
-                ...s,
-                checkIn: formatTimeForResponse(s.checkIn),
-                checkOut: formatTimeForResponse(s.checkOut),
-                breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
-                    ...b,
-                    breakIn: formatTimeForResponse(b.breakIn),
-                    breakOut: formatTimeForResponse(b.breakOut)
-                })) : []
-            })) : []
         };
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), formatted, {}));
