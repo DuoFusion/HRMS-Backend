@@ -1,11 +1,11 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose')
 
 const invoiceServiceSchema = new mongoose.Schema({
-	description: { type: String, required: true },
-	quantity: { type: Number, required: true, default: 1, min: 0 },
-	rate: { type: Number, required: true, default: 0, min: 0 },
-	taxPercent: { type: Number, required: true, default: 0, min: 0 },
-	discount: { type: Number, required: true, default: 0, min: 0 }, // percent per line
+	description: { type: String, },
+	quantity: { type: Number, default: 1, min: 0 },
+	rate: { type: Number, default: 0, min: 0 },
+	taxPercent: { type: Number, default: 0, min: 0 },
+	discount: { type: Number, default: 0, min: 0 }, // percent per line
 }, { _id: false });
 
 const invoiceTotalsSchema = new mongoose.Schema({
@@ -33,8 +33,8 @@ const invoicePaymentSchema = new mongoose.Schema({
 }, { _id: false });
 
 const invoiceSchema: any = new mongoose.Schema({
-	invoiceNumber: { type: String, required: true, unique: true },
-	invoiceDate: { type: Date, required: true },
+	invoiceNumber: { type: String, unique: true },
+	invoiceDate: { type: Date },
 	dueDate: { type: Date },
 	company: invoicePartySchema,
 	client: invoicePartySchema,
@@ -47,8 +47,6 @@ const invoiceSchema: any = new mongoose.Schema({
 	companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
 	isDeleted: { type: Boolean, default: false }
 }, { timestamps: true, versionKey: false });
-
-invoiceSchema.index({ invoiceNumber: 1 }, { unique: true });
 
 export const invoiceModel = mongoose.model('invoice', invoiceSchema);
 

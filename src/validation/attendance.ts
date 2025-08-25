@@ -12,6 +12,12 @@ export const updateBreakSchema = Joi.object({
     breakMinutes: Joi.number().min(0).max(1440).required() // Max 24 hours in minutes
 })
 
+export const breakInSchema = Joi.object({
+})
+
+export const breakOutSchema = Joi.object({
+})
+
 export const getAttendanceSchema = Joi.object({
     page: Joi.number().min(1).optional(),
     limit: Joi.number().min(1).max(100).optional(),

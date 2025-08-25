@@ -77,14 +77,12 @@ export const TASK_STATUS = {
 }
 
 export const TASK_TYPE = {
-    break: 'break',
-    lunch: 'lunch',
-    meeting: 'meeting'
+    BREAK: 'break',
+    LUNCH: 'lunch',
+    MEETING: 'meeting'
 }
 
 export const HOLIDAY_TYPE = {
-    public: 'public',
-    Optional: 'Optional',
-    Company: 'Company',
-    Other: 'Other'
-}
+    PUBLIC: 'public',
+    COMPANY: 'company',
+}   

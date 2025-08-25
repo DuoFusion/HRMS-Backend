@@ -13,7 +13,21 @@ const attendanceSchema: any = new mongoose.Schema({
     totalWorkingHours: { type: Number, default: 0 },
     productiveHours: { type: Number, default: 0 },
     remarks: { type: String, default: null },
-    isDeleted: { type: Boolean, default: false }
+    isDeleted: { type: Boolean, default: false },
+    // Sessions to support multiple punch in/out per day
+    sessions: [
+        {
+            checkIn: { type: Date, required: true },
+            checkOut: { type: Date, default: null },
+            // break entries per session
+            breaks: [
+                {
+                    breakIn: { type: Date, required: true },
+                    breakOut: { type: Date, default: null }
+                }
+            ]
+        }
+    ]
 }, { timestamps: true, versionKey: false })
 
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true })

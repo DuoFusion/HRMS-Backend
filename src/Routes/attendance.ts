@@ -7,7 +7,10 @@ const router = Router();
 
 router.post('/check-in', VALIDATE_ROLE([ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.punch_in);
 router.post('/check-out', VALIDATE_ROLE([ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.punch_out);
-router.post('/break/:id', VALIDATE_ROLE([ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.update_break);
+router.post('/break-in', VALIDATE_ROLE([ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.break_in);
+router.post('/break-out', VALIDATE_ROLE([ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.break_out);
+router.get('/today', VALIDATE_ROLE([ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.get_today_attendance);
+router.get('/summary', VALIDATE_ROLE([ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.get_attendance_summary);
 router.get('/all', VALIDATE_ROLE([ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), attendanceController.get_all_attendance);
 router.get('/:id', VALIDATE_ROLE([ROLES.ADMIN, ROLES.HR]), attendanceController.getAttendanceById);
 
