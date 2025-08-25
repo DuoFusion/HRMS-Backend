@@ -120,12 +120,12 @@ export const punch_out = async (req, res) => {
 // Update break minutes
 export const update_break = async (req, res) => {
     reqInfo(req);
-    let { user } = req.headers, { id } = req.params;
+    let { user } = req.headers
     try {
         const { error, value } = updateBreakSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const attendance = await getFirstMatch(attendanceModel, { _id: new ObjectId(id), userId: new ObjectId(user._id), isDeleted: false }, {}, {});
+        const attendance = await getFirstMatch(attendanceModel, { _id: new ObjectId(value.id), userId: new ObjectId(user._id), isDeleted: false }, {}, {});
         if (!attendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}));
 
         let productiveHours = attendance.productiveHours;
