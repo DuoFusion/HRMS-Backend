@@ -85,4 +85,11 @@ export const TASK_TYPE = {
 export const HOLIDAY_TYPE = {
     PUBLIC: 'public',
     COMPANY: 'company',
-}   
+}
+
+export const ATTENDANCE_STATUS = {
+    PRESENT: "Present",
+    ABSENT: "Absent",
+    HALF_DAY: "Half Day",
+    LEAVE: "Leave"
+}

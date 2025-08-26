@@ -1,3 +1,5 @@
+import { ATTENDANCE_STATUS } from "../../common";
+
 const mongoose = require('mongoose')
 
 const attendanceSchema: any = new mongoose.Schema({
@@ -5,7 +7,7 @@ const attendanceSchema: any = new mongoose.Schema({
     date: { type: Date, required: true },
     checkIn: { type: Date, default: null },
     checkOut: { type: Date, default: null },
-    status: { type: String, enum: ["Present", "Absent", "Half Day", "Leave"], default: "Present" },
+    status: { type: String, enum: Object.values(ATTENDANCE_STATUS), default: ATTENDANCE_STATUS.PRESENT },
     breakMinutes: { type: Number, default: 0 },
     lateMinutes: { type: Number, default: 0 },
     overtimeMinutes: { type: Number, default: 0 },
@@ -14,12 +16,10 @@ const attendanceSchema: any = new mongoose.Schema({
     productiveHours: { type: Number, default: 0 },
     remarks: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
-    // Sessions to support multiple punch in/out per day
     sessions: [
         {
             checkIn: { type: Date, required: true },
             checkOut: { type: Date, default: null },
-            // break entries per session
             breaks: [
                 {
                     breakIn: { type: Date, required: true },
