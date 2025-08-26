@@ -340,9 +340,8 @@ export const get_today_attendance = async (req, res) => {
         const end = getEndOfDayIst();
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: start, $lt: end }, isDeleted: false }, {}, {});
 
-        // Get last attendance to check punch-out status
         const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
-        console.log("lastAttendance => ",lastAttendance);
+
         let lastPunchOut = false;
         if (lastAttendance) {
             const lastBase = (lastAttendance && typeof lastAttendance.toObject === 'function') ? lastAttendance.toObject() : lastAttendance;
@@ -351,6 +350,8 @@ export const get_today_attendance = async (req, res) => {
             const lastSession = lastSessions.length > 0 ? lastSessions[lastSessions.length - 1] : null;
             lastPunchOut = lastSession ? (lastSession.checkIn && lastSession.checkOut) : (lastBase.checkIn && lastBase.checkOut);
         }
+
+        if(!lastAttendance) lastPunchOut = true
 
         if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
         
