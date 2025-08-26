@@ -15,6 +15,7 @@ import { attendanceRoutes } from './attendance'
 import { adminJWT } from '../helper'
 import { invoiceRoutes } from './invoice'
 import { reviewRoutes } from './review'
+import { projectRoutes } from './project'
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -26,6 +27,7 @@ router.use('/module', moduleRoutes)
 router.use('/permission', permissionRoutes)
 router.use('/upload', uploadRoutes)
 router.use('/leave', leaveRoutes)
+router.use('/project', projectRoutes)
 router.use('/task', taskRoutes)
 router.use('/holiday', holidayRoutes)
 router.use('/dashboard', boardRoutes)

@@ -1,6 +1,6 @@
 import { taskModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { countData, createData, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addTaskSchema, deleteTaskSchema, getAllTasksSchema, getTaskByIdSchema, updateTaskSchema } from "../../validation";
 import { ObjectId } from "mongoose";
 
@@ -11,6 +11,15 @@ export const add_task = async (req, res) => {
     try {
         const { error, value } = addTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        if (value.status) {
+            value.statusHistory = [{
+                fromStatus: null,
+                toStatus: value.status,
+                userId: req.headers.user._id,
+                changeDate: new Date()
+            }];
+        }
 
         const response = await createData(taskModel, value);
 
@@ -27,6 +36,21 @@ export const edit_task_by_id = async (req, res) => {
     try {
         const { error, value } = updateTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        const currentTask = await getFirstMatch(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {});
+        if (!currentTask) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}));
+
+        if (value.status && value.status !== currentTask.status) {
+            const statusChange = {
+                fromStatus: currentTask.status,
+                toStatus: value.status,
+                userId: req.headers.user._id,
+                changeDate: new Date()
+            };
+
+            if (!value.statusHistory) value.statusHistory = [];
+            value.statusHistory.push(statusChange);
+        }
 
         const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}))
@@ -55,6 +79,7 @@ export const delete_task_by_id = async (req, res) => {
 
 export const get_all_task = async (req, res) => {
     reqInfo(req)
+    let { user } = req.headers
     try {
         const { error, value } = getAllTasksSchema.validate(req.query)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
@@ -62,6 +87,8 @@ export const get_all_task = async (req, res) => {
         let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false
+
+        if (user.role !== ROLES.ADMIN) criteria.userId = user._id
 
         if (search) {
             criteria.$or = [
@@ -77,7 +104,14 @@ export const get_all_task = async (req, res) => {
             options.skip = (parseInt(page) - 1) * parseInt(limit)
             options.limit = parseInt(limit)
         }
-        const response = await getDataWithSorting(taskModel, criteria, {}, options)
+
+        let populateModel = [
+            { path: 'userId', select: 'fullName email role' },
+            { path: 'projectId', select: 'name' },
+            { path: 'statusHistory.userId', select: 'fullName email role' }
+        ]
+
+        const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
         const totalCount = await countData(taskModel, criteria)
 
         const stateObj = {
@@ -104,7 +138,13 @@ export const get_task_by_id = async (req, res) => {
         const { error, value } = getTaskByIdSchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await getFirstMatch(taskModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {})
+        let populateModel = [
+            { path: 'userId', select: 'fullName email role' },
+            { path: 'projectId', select: 'name' },
+            { path: 'statusHistory.userId', select: 'fullName email role' }
+        ]
+
+        const response = await findOneAndPopulate(taskModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {}, populateModel)
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("task"), {}, {}))
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("task"), response, {}))

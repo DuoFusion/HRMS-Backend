@@ -94,3 +94,11 @@ export const ATTENDANCE_STATUS = {
     HALF_DAY: "Half Day",
     LEAVE: "Leave"
 }
+
+export const PROJECT_STATUS = {
+    PLANNED: 'planned',
+    ACTIVE: 'active',
+    ONHOLD: 'onhold',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled'
+}
