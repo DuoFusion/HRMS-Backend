@@ -9,10 +9,11 @@ export const add_review = async (req, res) => {
     reqInfo(req)
     try {
         const { error, value } = addReviewSchema.validate(req.body);
-        if (error) { return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {})); }
+        if (error) return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {}));
 
-        const newReview = await createData(reviewModel, value);
-        return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Review"), newReview, {}));
+        const response = await createData(reviewModel, value);
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Review"), response, {}));
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
@@ -23,7 +24,7 @@ export const edit_review_by_id = async (req, res) => {
     reqInfo(req)
     try {
         const { error, value } = updateReviewSchema.validate(req.body);
-        if (error) { return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {})); }
+        if (error) return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {}));
 
         const response = await updateData(reviewModel, { _id: new ObjectId(value.reviewId), isDeleted: false }, value);
 
@@ -39,7 +40,7 @@ export const delete_review_by_id = async (req, res) => {
     reqInfo(req)
     try {
         const { error, value } = deleteReviewSchema.validate(req.params);
-        if (error) { return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {})); }
+        if (error) return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {}));
 
         const response = await updateData(reviewModel, { _id: new ObjectId(value.id), isDeleted: false }, { isDeleted: true }, { new: true });
 
@@ -50,22 +51,6 @@ export const delete_review_by_id = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
-
-export const get_review_by_id = async (req, res) => {
-    reqInfo(req)
-    try {
-        const { error, value } = getReviewSchema.validate(req.params);
-        if (error) { return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {})); }
-
-        const response = await getData(reviewModel, { _id: new ObjectId(value.id), isDeleted: false });
-        if (!response) { return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Review"), {}, {})); }
-        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Review"), response, {}));
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
-    }
-};
-
 
 export const get_all_reviews = async (req, res) => {
     reqInfo(req)
@@ -78,7 +63,9 @@ export const get_all_reviews = async (req, res) => {
         criteria.isDeleted = false;
         if (search) {
             criteria.$or = [
-                { description: { $regex: search, $options: 'si' } },
+                { red: { $regex: search, $options: 'si' } },
+                { yellow: { $regex: search, $options: 'si' } },
+                { green: { $regex: search, $options: 'si' } },
             ];
         }
         options.sort = { createdAt: -1 }
@@ -107,3 +94,18 @@ export const get_all_reviews = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
     }
 }
+
+export const get_review_by_id = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = getReviewSchema.validate(req.params);
+        if (error) return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {}));
+
+        const response = await getData(reviewModel, { _id: new ObjectId(value.id), isDeleted: false });
+        if (!response) { return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Review"), {}, {})); }
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Review"), response, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+};

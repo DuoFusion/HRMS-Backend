@@ -1,7 +1,7 @@
 import { attendanceModel, userModel, companyModel, holidayModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponse, formatTimeForResponse, getDataWithSorting, getEndOfDayIst, getFirstMatch, getHoursDifference, getStartOfDayIst, parseIstTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
-import { checkInSchema, checkOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
+import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -182,15 +182,15 @@ export const get_all_attendance = async (req, res) => {
 
         criteria.isDeleted = false
 
-        options.sort = { date: -1 }
+        options.sort = { createdAt: -1 }
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
-        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+        if (dateFilter) options.sort = dateFilter === "asc" ? { createdAt: 1 } : { createdAt: -1 }
 
-        if (startDate && endDate) criteria.date = { $gte: startDate, $lte: endDate }
+        if (startDate && endDate) criteria.createdAt = { $gte: startDate, $lte: endDate }
 
         if (statusFilter) criteria.status = statusFilter
 
@@ -340,12 +340,25 @@ export const get_today_attendance = async (req, res) => {
         const end = getEndOfDayIst();
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: start, $lt: end }, isDeleted: false }, {}, {});
 
-        if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), {}, {}));
+        // Get last attendance to check punch-out status
+        const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
+        console.log("lastAttendance => ",lastAttendance);
+        let lastPunchOut = false;
+        if (lastAttendance) {
+            const lastBase = (lastAttendance && typeof lastAttendance.toObject === 'function') ? lastAttendance.toObject() : lastAttendance;
+            const lastSessions = Array.isArray(lastBase.sessions) && lastBase.sessions.length > 0 ? lastBase.sessions : (lastBase.checkIn ? [{ checkIn: lastBase.checkIn, checkOut: lastBase.checkOut, breaks: [] }] : []);
+            
+            const lastSession = lastSessions.length > 0 ? lastSessions[lastSessions.length - 1] : null;
+            lastPunchOut = lastSession ? (lastSession.checkIn && lastSession.checkOut) : (lastBase.checkIn && lastBase.checkOut);
+        }
 
+        if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
+        
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
         const formatted = {
             ...base,
             date: formatDateForResponse(base.date),
+            lastPunchOut: !!lastPunchOut
         };
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), formatted, {}));
@@ -634,6 +647,114 @@ export const break_out = async (req, res) => {
         });
 
         return res.status(200).json(new apiResponse(200, "Break ended", updated, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+};
+
+export const manual_punch_out = async (req, res) => {
+    reqInfo(req);
+    let { user } = req.headers;
+    try {
+        const { error, value } = manualPunchOutSchema.validate(req.body);
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        const today = getStartOfDayIst();
+
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
+        if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found for today", {}, {}));
+
+        let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
+        let hasSessions = sessions.length > 0;
+        let openSessionIndex = hasSessions ? sessions.findIndex((s: any) => s && s.checkIn && !s.checkOut) : -1;
+
+        if (openSessionIndex === -1 && (!attendance.checkIn || attendance.checkOut)) return res.status(400).json(new apiResponse(400, "No open sessions to punch out", {}, {}));
+
+        let punchOutTime: Date;
+        if (value.customTime) {
+            const timeStr = value.customTime;
+            const [timePart, period] = timeStr.split(' ');
+            const [hours, minutes] = timePart.split(':').map(Number);
+            
+            let hour24 = hours;
+            if (period === 'PM' && hours !== 12) hour24 = hours + 12;
+            if (period === 'AM' && hours === 12) hour24 = 0;
+            
+            punchOutTime = new Date(today);
+            punchOutTime.setHours(hour24, minutes, 0, 0);
+        }
+        
+        let checkInTime: Date;
+        if (openSessionIndex >= 0) {
+            checkInTime = new Date(sessions[openSessionIndex].checkIn);
+        } else {
+            checkInTime = new Date(attendance.checkIn);
+        }
+        
+        if (punchOutTime <= checkInTime) {
+            return res.status(400).json(new apiResponse(400, "Punch-out time must be after check-in time", {}, {}));
+        }
+        
+        if (openSessionIndex >= 0) {
+            const session = sessions[openSessionIndex];
+            if (Array.isArray(session.breaks)) {
+                for (const b of session.breaks) {
+                    if (b.breakIn && !b.breakOut) {
+                        b.breakOut = punchOutTime;
+                    }
+                }
+            }
+            sessions[openSessionIndex].checkOut = punchOutTime;
+        } else {
+            attendance.checkOut = punchOutTime;
+        }
+
+        const computeTotals = (att: any) => {
+            let totalMinutes = 0;
+            let breakMinutes = 0;
+            const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
+            for (const session of allSessions) {
+                if (session.checkIn && session.checkOut) {
+                    totalMinutes += getHoursDifference(session.checkIn, session.checkOut) * 60;
+                    if (Array.isArray(session.breaks)) {
+                        for (const b of session.breaks) {
+                            if (b.breakIn && b.breakOut) {
+                                breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                            }
+                        }
+                    }
+                }
+            }
+            const totalWorkingHours = totalMinutes / 60;
+            const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
+            const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+            const productionHours = Math.round(productiveHours * 100) / 100;
+            return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
+        };
+
+        const totals = computeTotals({ ...attendance.toObject?.() ?? attendance, sessions });
+        const updateDataObj: any = {
+            checkOut: attendance.checkOut || punchOutTime,
+            sessions,
+            totalWorkingHours: totals.totalWorkingHours,
+            productiveHours: totals.productiveHours,
+            overtimeMinutes: totals.overtimeMinutes,
+            productionHours: totals.productionHours,
+            breakMinutes: totals.breakMinutes,
+            remarks: value.remarks || attendance.remarks
+        };
+
+        const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
+        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
+
+        const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
+        const formattedResponse = {
+            ...baseResponse,
+            date: formatDateForResponse(baseResponse.date)
+        };
+
+        return res.status(200).json(new apiResponse(200, "Manual punch-out successful", formattedResponse, {}));
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));

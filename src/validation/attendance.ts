@@ -8,6 +8,11 @@ export const checkOutSchema = Joi.object({
     remarks: Joi.string().optional().allow('', null)
 })
 
+export const manualPunchOutSchema = Joi.object({
+    remarks: Joi.string().optional().allow('', null),
+    customTime: Joi.string().required()
+})
+
 export const updateBreakSchema = Joi.object({
     breakMinutes: Joi.number().min(0).max(1440).required() // Max 24 hours in minutes
 })

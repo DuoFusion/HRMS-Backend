@@ -27,8 +27,8 @@ const userSchema: any = new mongoose.Schema({
         name: { type: String },
         relation: { type: String, enum: Object.values(RELATION) }
     },
-    aadharCardNumber: { type: String },
-    panCardNumber: { type: String },
+    aadharCardNumber: { type: String, default: null },
+    panCardNumber: { type: String, default: null },
     position: { type: String },
     department: { type: String },
     designation: { type: String },
