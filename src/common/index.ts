@@ -71,8 +71,9 @@ export const LEAVE_DAY_TYPE = {
 }
 
 export const TASK_STATUS = {
+    TO_DO: 'todo',
     PENDING: 'pending',
-    IN_PROGRESS: 'in_progress',
+    IN_PROGRESS: 'inprogress',
     COMPLETED: 'completed',
 }
 
