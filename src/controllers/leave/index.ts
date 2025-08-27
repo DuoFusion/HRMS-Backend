@@ -46,7 +46,7 @@ export const update_leave = async (req, res) => {
 export const delete_leave_by_id = async (req, res) => {
     reqInfo(req);
     try {
-        const { error, value } = deleteLeaveSchema.validate(req.params.id);
+        const { error, value } = deleteLeaveSchema.validate(req.params);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.id) }, { isDeleted: true }, {});
