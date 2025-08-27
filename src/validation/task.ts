@@ -6,8 +6,17 @@ export const addTaskSchema = joi.object().keys({
     userId: joi.string().optional(),
     description: joi.string(),
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
-    startDate: joi.string(),
-    endDate: joi.string(),
+    boardColumn: joi.string().valid('to_do','pending','inprogress','completed').optional(),
+    priority: joi.string().valid('low','medium','high').optional(),
+    client: joi.string().allow('', null),
+    labels: joi.array().items(joi.string()).optional(),
+    startDate: joi.date().optional(),
+    dueDate: joi.date().optional(),
+    endDate: joi.date().optional(),
+    progressPercent: joi.number().min(0).max(100).optional(),
+    assignees: joi.array().items(joi.string()).optional(),
+    commentsCount: joi.number().min(0).optional(),
+    attachmentsCount: joi.number().min(0).optional(),
     timer: joi.object({
         isRunning: joi.boolean(),
         startTime: joi.string(),
@@ -23,15 +32,25 @@ export const addTaskSchema = joi.object().keys({
 export const updateTaskSchema = joi.object().keys({
     taskId: joi.string().required(),
     title: joi.string(),
-    description: joi.string(),
+    userId: joi.string().optional(),
+    description: joi.string().allow('', null),
     status: joi.string().valid(...Object.values(TASK_STATUS)),
-    startDate: joi.string(),
-    endDate: joi.string(),
+    boardColumn: joi.string().valid('to_do','pending','inprogress','completed'),
+    priority: joi.string().valid('low','medium','high'),
+    client: joi.string().allow('', null),
+    labels: joi.array().items(joi.string()),
+    startDate: joi.date(),
+    dueDate: joi.date(),
+    endDate: joi.date(),
+    progressPercent: joi.number().min(0).max(100),
+    assignees: joi.array().items(joi.string()),
+    commentsCount: joi.number().min(0),
+    attachmentsCount: joi.number().min(0),
     timer: joi.object({
         isRunning: joi.boolean(),
         startTime: joi.string(),
         totalTime: joi.number(),
-    }),
+    }).optional(),
     remarks: joi.array().items(
         joi.object({
             text: joi.string().required(),
@@ -42,30 +61,23 @@ export const updateTaskSchema = joi.object().keys({
 
 
 export const deleteTaskSchema = joi.object().keys({
-    taskId: joi.string().required(),
+    id: joi.string().required(),
 })
 
 export const getAllTasksSchema = joi.object({
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
-    startDate: joi.string(),
-    endDate: joi.string(),
+    boardColumn: joi.string().valid('to_do','pending','inprogress','completed').optional(),
+    priority: joi.string().valid('low','medium','high').optional(),
+    client: joi.string().optional(),
+    assignee: joi.string().optional(),
+    startDate: joi.date().optional(),
+    endDate: joi.date().optional(),
     search: joi.string().optional(),
     page: joi.number().integer().min(1).optional(),
-    limit: joi.number().integer().min(1).optional(),
-    timer: joi.object({
-        isRunning: joi.boolean(),
-        startTime: joi.string(),
-        totalTime: joi.number(),
-    }),
-    remarks: joi.array().items(
-        joi.object({
-            text: joi.string().required(),
-            type: joi.string().valid(...Object.values(TASK_TYPE)).required()
-        })
-    ).optional()
+    limit: joi.number().integer().min(1).optional()
 })
 
 
 export const getTaskByIdSchema = joi.object().keys({
-    taskId: joi.string().required(),
+    id: joi.string().required(),
 })

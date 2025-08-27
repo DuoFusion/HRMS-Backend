@@ -1,6 +1,6 @@
 import { taskModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
+import { countData, createData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addTaskSchema, deleteTaskSchema, getAllTasksSchema, getTaskByIdSchema, updateTaskSchema } from "../../validation";
 import { ObjectId } from "mongoose";
 
@@ -8,6 +8,7 @@ const ObjectId = require('mongoose').Types.ObjectId;
 
 export const add_task = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers;
     try {
         const { error, value } = addTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
@@ -19,6 +20,10 @@ export const add_task = async (req, res) => {
                 userId: req.headers.user._id,
                 changeDate: new Date()
             }];
+        }
+
+        if (user?.role === ROLES.EMPLOYEE || user?.role === ROLES.PROJECT_MANAGER) {
+            value.userId = new ObjectId(user._id);
         }
 
         const response = await createData(taskModel, value);
@@ -88,15 +93,22 @@ export const get_all_task = async (req, res) => {
 
         criteria.isDeleted = false
 
-        if (user.role !== ROLES.ADMIN) criteria.userId = user._id
+        const { user } = req.headers;
+
+        if (user?.role !== ROLES.ADMIN) criteria.$or = [{ userId: new ObjectId(user._id) }, { assignees: new ObjectId(user._id) }];
+
+        if (value.status) criteria.status = value.status;
+        if (value.boardColumn) criteria.boardColumn = value.boardColumn;
+        if (value.priority) criteria.priority = value.priority;
+        if (value.client) criteria.client = value.client;
+        if (value.assignee) criteria.assignees = new ObjectId(value.assignee);
+        if (value.startDate && value.endDate) criteria.createdAt = { $gte: value.startDate, $lte: value.endDate };
 
         if (search) {
             criteria.$or = [
                 { title: { $regex: search, $options: "si" } },
                 { description: { $regex: search, $options: "si" } },
                 { status: { $regex: search, $options: "si" } },
-                { text: { $regex: search, $options: "si" } },
-                { type: { $regex: search, $options: "si" } },
             ]
         }
 
