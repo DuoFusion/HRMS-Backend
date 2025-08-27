@@ -23,6 +23,7 @@ export const updateLeaveSchema = Joi.object().keys({
     status: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     approvedBy: Joi.string().optional(),
     dayType: Joi.string().valid(...Object.values(LEAVE_DAY_TYPE)).optional(),
+    isBlocked: Joi.boolean().optional(),
 });
 
 export const deleteLeaveSchema = Joi.object().keys({
@@ -30,11 +31,14 @@ export const deleteLeaveSchema = Joi.object().keys({
 });
 
 export const getAllLeavesSchema = Joi.object().keys({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).default(10),
+    page: Joi.number().integer().optional(),
+    limit: Joi.number().integer().optional(),
     activeFilter: Joi.boolean().optional(),
-    statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
+    userFilter: Joi.string().optional(),
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
+    statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
+    startDateFilter: Joi.date().optional(),
+    endDateFilter: Joi.date().optional(),
     search: Joi.string().optional()
 });
 

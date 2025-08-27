@@ -12,6 +12,7 @@ const leaveSchema = new mongoose.Schema({
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     dayType: { type: String, enum: Object.values(LEAVE_DAY_TYPE), default: LEAVE_DAY_TYPE.FULL },
     isDeleted: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
 }, { timestamps: true, versionKey: false });
 
 export const leaveModel = mongoose.model('leave', leaveSchema);

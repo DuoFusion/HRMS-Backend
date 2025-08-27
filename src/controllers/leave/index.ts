@@ -33,7 +33,7 @@ export const update_leave = async (req, res) => {
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(value.leaveId), isDeleted: false }, {}, {});
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));
 
-        if(user.role === ROLES.ADMIN || user.role === ROLES.HR) value.approvedBy = new ObjectId(user._id)
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) value.approvedBy = new ObjectId(user._id)
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, value, {});
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('Leave'), response, {}));
@@ -66,14 +66,17 @@ export const get_all_leaves = async (req, res) => {
         const { error, value } = getAllLeavesSchema.validate(req.query);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, roleFilter, activeFilter, search } = value;
+        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, userFilter, typeFilter, statusFilter, startDateFilter, endDateFilter, activeFilter } = value;
 
-        if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
         options.sort = { createdAt: -1 }
-        if (roleFilter) criteria.role = roleFilter;
-        if (activeFilter) criteria.type = activeFilter;
-
+        if (userFilter) criteria.userId = userFilter;
+        if (typeFilter) criteria.type = typeFilter;
+        if (statusFilter) criteria.status = statusFilter;
+        if (startDateFilter && endDateFilter) criteria.startDate = { $gte: new Date(startDateFilter), $lte: new Date(endDateFilter) }
+        if (activeFilter === true) criteria.isBlocked = true
+        if (activeFilter === false) criteria.isBlocked = false
         if (search) {
             criteria.$or = [
                 { reason: { $regex: search, $options: "i" } }
