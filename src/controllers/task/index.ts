@@ -23,9 +23,8 @@ export const add_task = async (req, res) => {
             changeDate: new Date()
         }];
 
-        if (user?.role === ROLES.EMPLOYEE || user?.role === ROLES.PROJECT_MANAGER) {
-            value.userId = new ObjectId(user._id);
-        }
+        value.userId = new ObjectId(user._id);
+        
 
         value.comments = [{
             text: value.comment,
@@ -140,6 +139,7 @@ export const get_all_task = async (req, res) => {
             { path: 'projectId', select: 'name' },
             { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
             { path: 'comments.userId', select: 'fullName email role profilePhoto' },
+            { path: 'assignees', select: 'fullName email role profilePhoto' },
         ]
 
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
