@@ -7,24 +7,31 @@ import { ObjectId } from "mongoose";
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export const add_task = async (req, res) => {
-    reqInfo(req)
     const { user } = req.headers;
     try {
         const { error, value } = addTaskSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        if (value.status) {
-            value.statusHistory = [{
-                fromStatus: null,
-                toStatus: value.status,
-                userId: req.headers.user._id,
-                changeDate: new Date()
-            }];
+        if (!value.status) {
+            value.status = 'pending';
         }
+
+        value.statusHistory = [{
+            fromStatus: null,
+            toStatus: value.status,
+            userId: new ObjectId(user._id),
+            changeDate: new Date()
+        }];
 
         if (user?.role === ROLES.EMPLOYEE || user?.role === ROLES.PROJECT_MANAGER) {
             value.userId = new ObjectId(user._id);
         }
+
+        value.comments = [{
+            text: value.comment,
+            userId: new ObjectId(req.headers.user._id),
+            createdAt: new Date()
+        }];
 
         const response = await createData(taskModel, value);
 
@@ -45,19 +52,30 @@ export const edit_task_by_id = async (req, res) => {
         const currentTask = await getFirstMatch(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {});
         if (!currentTask) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}));
 
+        let timestamps = false
         if (value.status && value.status !== currentTask.status) {
+            const existingHistory = currentTask.statusHistory || [];
+
             const statusChange = {
                 fromStatus: currentTask.status,
                 toStatus: value.status,
-                userId: req.headers.user._id,
+                userId: new ObjectId(req.headers.user._id),
                 changeDate: new Date()
             };
-
-            if (!value.statusHistory) value.statusHistory = [];
-            value.statusHistory.push(statusChange);
+            timestamps = true
+            value.statusHistory = [...existingHistory, statusChange];
         }
 
-        const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, {});
+        if (value.comment) {
+            let existingComments = currentTask.comments || [];
+            value.comments = [...existingComments, {
+                text: value.comment,
+                userId: new ObjectId(req.headers.user._id),
+                createdAt: new Date()
+            }];
+        }
+
+        const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, { timestamps });
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}))
         return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('task'), response, {}))
     } catch (error) {
@@ -93,9 +111,9 @@ export const get_all_task = async (req, res) => {
 
         criteria.isDeleted = false
 
-        const { user } = req.headers;
+        options.sort = { updatedAt: -1 }
 
-        if (user?.role !== ROLES.ADMIN) criteria.$or = [{ userId: new ObjectId(user._id) }, { assignees: new ObjectId(user._id) }];
+        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { assignees: new ObjectId(user._id) }];
 
         if (value.status) criteria.status = value.status;
         if (value.boardColumn) criteria.boardColumn = value.boardColumn;
@@ -118,9 +136,10 @@ export const get_all_task = async (req, res) => {
         }
 
         let populateModel = [
-            { path: 'userId', select: 'fullName email role' },
+            { path: 'userId', select: 'fullName email role profilePhoto' },
             { path: 'projectId', select: 'name' },
-            { path: 'statusHistory.userId', select: 'fullName email role' }
+            { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
+            { path: 'comments.userId', select: 'fullName email role profilePhoto' },
         ]
 
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)

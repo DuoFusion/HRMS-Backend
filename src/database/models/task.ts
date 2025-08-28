@@ -34,6 +34,12 @@ const TaskSchema = new mongoose.Schema({
         changeDate: { type: Date, default: Date.now }
     }],
 
+    comments: [{
+        text: { type: String },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+        createdAt: { type: Date, default: Date.now },
+    }],
+
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true, versionKey: false })
 

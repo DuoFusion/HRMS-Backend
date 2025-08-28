@@ -13,6 +13,7 @@ export const addTaskSchema = joi.object().keys({
     startDate: joi.date().optional(),
     dueDate: joi.date().optional(),
     endDate: joi.date().optional(),
+    projectId: joi.string().required(),
     progressPercent: joi.number().min(0).max(100).optional(),
     assignees: joi.array().items(joi.string()).optional(),
     commentsCount: joi.number().min(0).optional(),
@@ -26,7 +27,8 @@ export const addTaskSchema = joi.object().keys({
         joi.object({
             text: joi.string().required(),
             type: joi.string().valid(...Object.values(TASK_TYPE)).required()
-        })).optional()
+        })).optional(),
+    comment: joi.string().optional()
 })
 
 export const updateTaskSchema = joi.object().keys({
@@ -42,6 +44,7 @@ export const updateTaskSchema = joi.object().keys({
     startDate: joi.date(),
     dueDate: joi.date(),
     endDate: joi.date(),
+    projectId: joi.string().optional(),
     progressPercent: joi.number().min(0).max(100),
     assignees: joi.array().items(joi.string()),
     commentsCount: joi.number().min(0),
@@ -56,7 +59,8 @@ export const updateTaskSchema = joi.object().keys({
             text: joi.string().required(),
             type: joi.string().valid(...Object.values(TASK_TYPE)).required()
         })
-    ).optional()
+    ).optional(),
+    comment: joi.string().optional()
 });
 
 
@@ -66,6 +70,7 @@ export const deleteTaskSchema = joi.object().keys({
 
 export const getAllTasksSchema = joi.object({
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
+    activeFilter: joi.boolean().optional(),
     boardColumn: joi.string().valid('to_do','pending','inprogress','completed').optional(),
     priority: joi.string().valid('low','medium','high').optional(),
     client: joi.string().optional(),
@@ -73,8 +78,8 @@ export const getAllTasksSchema = joi.object({
     startDate: joi.date().optional(),
     endDate: joi.date().optional(),
     search: joi.string().optional(),
-    page: joi.number().integer().min(1).optional(),
-    limit: joi.number().integer().min(1).optional()
+    page: joi.number().integer().optional(),
+    limit: joi.number().integer().optional()
 })
 
 

@@ -29,7 +29,7 @@ export const edit_project_by_id = async (req, res) => {
 
         const response = await updateData(projectModel, { _id: new ObjectId(value.projectId), isDeleted: false }, value, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('project'), {}, {}))
-        return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('project'), response, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('project'), response, {}))
     } catch (error) {
         console.error(error)
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
@@ -59,7 +59,7 @@ export const get_all_project = async (req, res) => {
         const { error, value } = getAllProjectsSchema.validate(req.query)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search, statusFilter, startDate, endDate, sortOrder } = value, criteria: any = {}, options: any = { lean: true };
+        let { page, limit, search, statusFilter, startDate, endDate, sortOrder, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false
 
@@ -68,6 +68,9 @@ export const get_all_project = async (req, res) => {
         if (statusFilter) criteria.status = statusFilter
 
         if (sortOrder) options.sort = { createdAt: sortOrder === 'asc' ? 1 : -1 }
+
+        if(activeFilter === false) criteria.isBlocked = false
+        if(activeFilter === true) criteria.isBlocked =  true
 
         if (startDate && endDate) criteria.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) }
 
@@ -85,7 +88,6 @@ export const get_all_project = async (req, res) => {
         }
 
         let populateModel = [{ path: 'userIds', select: 'fullName email role' }]
-
         const response = await findAllWithPopulateWithSorting(projectModel, criteria, {}, options, populateModel)
         const totalCount = await countData(projectModel, criteria)
 
