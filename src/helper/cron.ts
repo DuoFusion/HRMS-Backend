@@ -1,8 +1,8 @@
 import { CronJob } from 'cron';
 import { invoiceModel, userModel, attendanceModel, holidayModel, leaveModel } from "../database";
 import { calculateMonthlySalaryForUser, getNextInvoiceNumber, getPreviousMonthRange, makeSalaryServiceLine, computeInvoiceTotals } from "./salary";
-import { getStartOfDayIst, getEndOfDayIst } from "./index";
-import { ATTENDANCE_STATUS, LEAVE_STATUS } from '../common';
+import { ATTENDANCE_STATUS, LEAVE_STATUS, ROLES } from '../common';
+import { getEndOfDayIst, getStartOfDayIst } from './timezone';
 
 export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function () {
 	try {
@@ -37,26 +37,28 @@ export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function (
 	}
 }, null, false, 'Asia/Kolkata');
 
-export const dailyAttendanceStatusJob = new CronJob('0 0 * * *', async function () {
+export const dailyAttendanceStatusJob = new CronJob('* * * * * *', async function () {
 	try {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1)
-		const yesterdayStart = getStartOfDayIst(yesterday)
-		const yesterdayEnd = getEndOfDayIst(yesterday)
 
-		const users = await userModel.find({ isDeleted: false, isBlocked: false }).lean()
+		const yesterdayStart = new Date(yesterday);
+		yesterdayStart.setHours(0, 0, 0, 0);
+
+		const yesterdayEnd = new Date(yesterday);
+		yesterdayEnd.setHours(23, 59, 59, 999);
+		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
 
 		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false }).lean()
 
 		const isHoliday = holidays.length > 0
-
 		for (const user of users) {
 			if (isHoliday) continue;
-			
+
 			const existingAttendance = await attendanceModel.findOne({ userId: user._id, date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false })
 
 			if (existingAttendance) continue;
-			
+
 			const leave = await leaveModel.findOne({
 				userId: user._id,
 				startDate: { $lte: yesterdayEnd },
@@ -64,7 +66,6 @@ export const dailyAttendanceStatusJob = new CronJob('0 0 * * *', async function 
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
-
 			if (leave && leave.dayType === 'half') continue;
 
 			let status = ATTENDANCE_STATUS.ABSENT;

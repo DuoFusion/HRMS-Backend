@@ -13,6 +13,7 @@ const CompanySchema = new mongoose.Schema({
         end: { type: String }
     },
     lateMinutes: { type: Number },
+    companyHours: { type: Number },
     isDeleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
 }, { timestamps: true, versionKey: false })
