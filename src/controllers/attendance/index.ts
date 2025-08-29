@@ -1,6 +1,6 @@
 import { attendanceModel, userModel, companyModel, holidayModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponse, formatTimeForResponse, getDataWithSorting, getEndOfDayIst, getFirstMatch, getHoursDifference, getStartOfDayIst, parseIstTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -12,10 +12,14 @@ export const punch_in = async (req, res) => {
         const { error, value } = checkInSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const today = getStartOfDayIst();
-        const tomorrow = getEndOfDayIst();
+        // Create IST timezone boundaries using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
+        
+        const queryEnd = new Date();
+        queryEnd.setHours(23, 59, 59, 999);
 
-        const existingAttendance = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: today, $lt: tomorrow }, isDeleted: false }, {}, {});
+        const existingAttendance = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
         if (existingAttendance && Array.isArray(existingAttendance.sessions)) {
             const hasOpenSession = existingAttendance.sessions.some((s: any) => s && s.checkIn && !s.checkOut);
             if (hasOpenSession) {
@@ -48,9 +52,13 @@ export const punch_in = async (req, res) => {
             breaks: [] as any[]
         } as any;
 
+        // Create the date for storing attendance (current date without time)
+        const attendanceDate = new Date();
+        attendanceDate.setHours(0, 0, 0, 0);
+        
         const attendanceData: any = {
             userId: new ObjectId(user._id),
-            date: today,
+            date: attendanceDate,
             status,
             lateMinutes,
             remarks: value.remarks || null
@@ -78,7 +86,7 @@ export const punch_in = async (req, res) => {
         const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
         const formattedResponse = {
             ...baseResponse,
-            date: formatDateForResponse(baseResponse.date)
+            date: formatDateForResponseUtc(baseResponse.date)
         };
 
         return res.status(200).json(new apiResponse(200, "Check-in successful", formattedResponse, {}));
@@ -95,10 +103,14 @@ export const punch_out = async (req, res) => {
         const { error, value } = checkOutSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const today = getStartOfDayIst();
-        const tomorrow = getEndOfDayIst();
+        // Create IST timezone boundaries using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
+        
+        const queryEnd = new Date();
+        queryEnd.setHours(23, 59, 59, 999);
 
-        const attendance = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: today, $lt: tomorrow }, isDeleted: false }, {}, {});
+        const attendance = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
 
         if (!attendance) return res.status(400).json(new apiResponse(400, "No check-in record found for today", {}, {}));
 
@@ -159,7 +171,7 @@ export const punch_out = async (req, res) => {
         const baseResponse2: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
         const formattedResponse = {
             ...baseResponse2,
-            date: formatDateForResponse(baseResponse2.date)
+            date: formatDateForResponseUtc(baseResponse2.date)
         };
 
         return res.status(200).json(new apiResponse(200, "Check-out successful", formattedResponse, {}));
@@ -206,7 +218,7 @@ export const get_all_attendance = async (req, res) => {
 
         const formattedResponse = response.map(attendance => ({
             ...attendance,
-            date: formatDateForResponse(attendance.date),
+            date: formatDateForResponseUtc(attendance.date),
         }))
 
         const stateObj = {
@@ -238,17 +250,17 @@ export const getAttendanceById = async (req, res) => {
 
         const formattedResponse = {
             ...response.toObject(),
-            checkIn: formatTimeForResponse(response.checkIn),
-            checkOut: formatTimeForResponse(response.checkOut),
-            date: formatDateForResponse(response.date),
+            checkIn: formatTimeForResponseUtc(response.checkIn),
+            checkOut: formatTimeForResponseUtc(response.checkOut),
+            date: formatDateForResponseUtc(response.date),
             sessions: Array.isArray((response as any).sessions) ? (response as any).sessions.map((s: any) => ({
                 ...s,
-                checkIn: formatTimeForResponse(s.checkIn),
-                checkOut: formatTimeForResponse(s.checkOut),
+                checkIn: formatTimeForResponseUtc(s.checkIn),
+                checkOut: formatTimeForResponseUtc(s.checkOut),
                 breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
                     ...b,
-                    breakIn: formatTimeForResponse(b.breakIn),
-                    breakOut: formatTimeForResponse(b.breakOut)
+                    breakIn: formatTimeForResponseUtc(b.breakIn),
+                    breakOut: formatTimeForResponseUtc(b.breakOut)
                 })) : []
             })) : []
         };
@@ -300,9 +312,9 @@ export const updateAttendance = async (req, res) => {
 
         const formattedResponse = {
             ...response.toObject(),
-            checkIn: formatTimeForResponse(response.checkIn),
-            checkOut: formatTimeForResponse(response.checkOut),
-            date: formatDateForResponse(response.date)
+            checkIn: formatTimeForResponseUtc(response.checkIn),
+            checkOut: formatTimeForResponseUtc(response.checkOut),
+            date: formatDateForResponseUtc(response.date)
         };
 
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("attendance"), formattedResponse, {}));
@@ -334,9 +346,13 @@ export const get_today_attendance = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers;
     try {
-        const start = getStartOfDayIst();
-        const end = getEndOfDayIst();
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: start, $lt: end }, isDeleted: false }, {}, {});
+        // Create IST timezone boundaries using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
+        
+        const queryEnd = new Date();
+        queryEnd.setHours(23, 59, 59, 999);
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
 
         const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
 
@@ -356,7 +372,7 @@ export const get_today_attendance = async (req, res) => {
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
         const formatted = {
             ...base,
-            date: formatDateForResponse(base.date),
+            date: formatDateForResponseUtc(base.date),
             lastPunchOut: !!lastPunchOut
         };
 
@@ -372,23 +388,37 @@ export const get_attendance_summary = async (req, res) => {
     let { user } = req.headers;
     try {
         const now = new Date();
-        const startToday = getStartOfDayIst(now);
-        const endToday = getEndOfDayIst(now);
+        // Create IST timezone boundaries using setHours for database query
+        const queryStartToday = new Date(now);
+        queryStartToday.setHours(0, 0, 0, 0);
+        
+        const queryEndToday = new Date(now);
+        queryEndToday.setHours(23, 59, 59, 999);
 
         const startOfWeek = (() => {
             const d = new Date(now);
             const day = d.getDay();
             const diff = (day === 0 ? 6 : day - 1);
             d.setDate(d.getDate() - diff);
-            return getStartOfDayIst(d);
+            d.setHours(0, 0, 0, 0);
+            return d;
         })();
-        const endOfWeek = getEndOfDayIst(new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000));
+        const endOfWeek = (() => {
+            const d = new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000);
+            d.setHours(23, 59, 59, 999);
+            return d;
+        })();
 
         const startOfMonth = (() => {
             const d = new Date(now.getFullYear(), now.getMonth(), 1);
-            return getStartOfDayIst(d);
+            d.setHours(0, 0, 0, 0);
+            return d;
         })();
-        const endOfMonth = getEndOfDayIst(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+        const endOfMonth = (() => {
+            const d = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            d.setHours(23, 59, 59, 999);
+            return d;
+        })();
 
         const loadRange = async (from: Date, to: Date) => {
             const list = await getDataWithSorting(
@@ -400,7 +430,7 @@ export const get_attendance_summary = async (req, res) => {
             return list || [];
         };
 
-        const todayEntry: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: startToday, $lt: endToday }, isDeleted: false }, {}, {});
+        const todayEntry: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStartToday, $lt: queryEndToday }, isDeleted: false }, {}, {});
         const weekEntries: any[] = await loadRange(startOfWeek, endOfWeek);
         const monthEntries: any[] = await loadRange(startOfMonth, endOfMonth);
 
@@ -440,8 +470,8 @@ export const get_attendance_summary = async (req, res) => {
             const startStr: string | undefined = company?.workingHours?.start;
             const endStr: string | undefined = company?.workingHours?.end;
             if (startStr && endStr) {
-                const s = parseIstTimeStringToUtcToday(startStr);
-                const e = parseIstTimeStringToUtcToday(endStr);
+                const s = parseUtcTimeStringToUtcToday(startStr);
+                const e = parseUtcTimeStringToUtcToday(endStr);
                 if (s && e) {
                     dailyTargetHours = Math.max(0, getHoursDifference(s, e));
                 }
@@ -508,8 +538,8 @@ export const get_attendance_summary = async (req, res) => {
             // Format for response
             return items.map(seg => ({
                 type: seg.type,
-                start: formatTimeForResponse(seg.start),
-                end: formatTimeForResponse(seg.end)
+                start: formatTimeForResponseUtc(seg.start),
+                end: formatTimeForResponseUtc(seg.end)
             }));
         })();
 
@@ -521,8 +551,8 @@ export const get_attendance_summary = async (req, res) => {
         } as any;
 
         const summary = {
-            now: formatTimeForResponse(now),
-            date: formatDateForResponse(now),
+            now: formatTimeForResponseUtc(now),
+            date: formatDateForResponseUtc(now),
             today: {
                 totalWorkingHours: todayTotals.totalWorkingHours,
                 productiveHours: todayTotals.productiveHours,
@@ -553,10 +583,14 @@ export const break_in = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers;
     try {
-        const today = getStartOfDayIst();
-        const tomorrow = getEndOfDayIst();
+        // Create IST timezone boundaries using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
+        
+        const queryEnd = new Date();
+        queryEnd.setHours(23, 59, 59, 999);
 
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: today, $lt: tomorrow }, isDeleted: false }, {}, {});
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
         if (!attendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}));
 
         const now = new Date();
@@ -591,11 +625,15 @@ export const break_out = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers;
     try {
-        const today = getStartOfDayIst();
-        const tomorrow = getEndOfDayIst();
+        // Create IST timezone boundaries using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
+        
+        const queryEnd = new Date();
+        queryEnd.setHours(23, 59, 59, 999);
 
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: today, $lt: tomorrow }, isDeleted: false }, {}, {});
-        if (!attendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}));
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
+        if (!attendance) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound("attendance"), {}, {}));
 
         const now = new Date();
         let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
@@ -659,7 +697,9 @@ export const manual_punch_out = async (req, res) => {
         const { error, value } = manualPunchOutSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const today = getStartOfDayIst();
+        // Create IST timezone boundary using setHours for database query
+        const queryStart = new Date();
+        queryStart.setHours(0, 0, 0, 0);
 
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
         if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found for today", {}, {}));
@@ -680,7 +720,7 @@ export const manual_punch_out = async (req, res) => {
             if (period === 'PM' && hours !== 12) hour24 = hours + 12;
             if (period === 'AM' && hours === 12) hour24 = 0;
 
-            punchOutTime = new Date(today);
+            punchOutTime = new Date(queryStart);
             punchOutTime.setHours(hour24, minutes, 0, 0);
         }
 
@@ -750,7 +790,7 @@ export const manual_punch_out = async (req, res) => {
         const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
         const formattedResponse = {
             ...baseResponse,
-            date: formatDateForResponse(baseResponse.date)
+            date: formatDateForResponseUtc(baseResponse.date)
         };
 
         return res.status(200).json(new apiResponse(200, "Manual punch-out successful", formattedResponse, {}));

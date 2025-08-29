@@ -176,3 +176,84 @@ export const computeLateMinutesIst = (
     const safeGrace = Number.isFinite(graceMinutes) ? graceMinutes : 0;
     return Math.max(0, diff - safeGrace);
 };
+
+export const getStartOfDayUtc = (date: Date = new Date()): Date => {
+    const utcDate = new Date(date);
+    utcDate.setUTCHours(0, 0, 0, 0);
+    return utcDate;
+};
+
+// Get end of day in UTC (23:59:59)
+export const getEndOfDayUtc = (date: Date = new Date()): Date => {
+    const utcDate = new Date(date);
+    utcDate.setUTCHours(23, 59, 59, 999);
+    return utcDate;
+};
+
+// Get current UTC time
+export const getCurrentUtcTime = (): Date => {
+    return new Date();
+};
+
+// Format time for response (UTC)
+export const formatTimeForResponseUtc = (date: Date): string => {
+    if (!date) return null;
+    return date.toISOString().substr(11, 8); // Returns HH:MM:SS format
+};
+
+// Format date for response (UTC)
+export const formatDateForResponseUtc = (date: Date): string => {
+    if (!date) return null;
+    return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
+};
+
+// Parse a time string like "17:30" (24-hour format) and return a Date in UTC for today's date at that time
+export const parseUtcTimeStringToUtcToday = (timeStr?: string | null): Date | null => {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    const trimmed = timeStr.trim();
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+    const nowUtc = new Date();
+    const todayUtc = new Date(nowUtc);
+    todayUtc.setUTCHours(hours, minutes, 0, 0);
+
+    return todayUtc;
+};
+
+// Compute late minutes by comparing current time and scheduled start in UTC, then subtracting grace minutes
+export const computeLateMinutesUtc = (
+    currentUtc: Date,
+    workingStartStr: string | undefined | null,
+    graceMinutes: number
+): number => {
+    // Get current UTC time as minutes since midnight
+    const nowHours = currentUtc.getUTCHours();
+    const nowMinutes = currentUtc.getUTCMinutes();
+    const nowMinutesSinceMidnight = nowHours * 60 + nowMinutes;
+
+    // Parse the user's working start string (UTC time-of-day) into minutes since midnight
+    const scheduledMinutesSinceMidnight = (() => {
+        let h = 9, m = 0; // Default to 9:00 AM UTC
+        if (typeof workingStartStr === 'string') {
+            const match = workingStartStr.trim().match(/^(\d{1,2}):(\d{2})$/);
+            if (match) {
+                h = parseInt(match[1], 10);
+                m = parseInt(match[2], 10);
+            }
+        }
+        return (Math.max(0, Math.min(23, h)) * 60) + (Math.max(0, Math.min(59, m)));
+    })();
+
+    const diff = nowMinutesSinceMidnight - scheduledMinutesSinceMidnight;
+    if (diff <= 0) return 0;
+
+    const safeGrace = Number.isFinite(graceMinutes) ? graceMinutes : 0;
+    return Math.max(0, diff - safeGrace);
+};
