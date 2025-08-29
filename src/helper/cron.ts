@@ -42,7 +42,13 @@ export const dailyAttendanceStatusJob = new CronJob('* * * * * *', async functio
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1)
 
-		const users = await userModel.find({ isDeleted: false, isBlocked: false }).lean()
+		const yesterdayStart = new Date(yesterday);
+		yesterdayStart.setHours(0, 0, 0, 0);
+
+		const yesterdayEnd = new Date(yesterday);
+		yesterdayEnd.setHours(23, 59, 59, 999);
+		
+		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
 		
 		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false }).lean()
 	
