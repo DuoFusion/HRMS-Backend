@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-import { TASK_STATUS, TASK_TYPE } from "../../common";
+import { TASK_PRIORITY, TASK_STATUS, TASK_TYPE } from "../../common";
 
 const TaskSchema = new mongoose.Schema({
     title: { type: String, required: true },
@@ -11,7 +11,7 @@ const TaskSchema = new mongoose.Schema({
     dueDate: { type: Date },
     endDate: { type: Date },
     progressPercent: { type: Number, min: 0, max: 100, default: 0 },
-
+    priority: { type: String, enum: Object.values(TASK_PRIORITY), default: TASK_PRIORITY.LOW },
     userIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }],
     commentsCount: { type: Number, default: 0 },
     attachmentsCount: { type: Number, default: 0 },

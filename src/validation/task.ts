@@ -1,13 +1,12 @@
 import joi from 'joi';
-import { TASK_STATUS, TASK_TYPE } from '../common';
+import { TASK_PRIORITY, TASK_STATUS, TASK_TYPE } from '../common';
 
 export const addTaskSchema = joi.object().keys({
     title: joi.string().required(),
     userId: joi.string().optional(),
     description: joi.string(),
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
-    boardColumn: joi.string().valid('to_do','pending','inprogress','completed').optional(),
-    priority: joi.string().valid('low','medium','high').optional(),
+    priority: joi.string().valid(...Object.values(TASK_PRIORITY)).optional(),
     client: joi.string().allow('', null),
     labels: joi.array().items(joi.string()).optional(),
     startDate: joi.date().optional(),
@@ -26,7 +25,7 @@ export const addTaskSchema = joi.object().keys({
     remarks: joi.array().items(
         joi.object({
             text: joi.string().required(),
-            type: joi.string().valid(...Object.values(TASK_TYPE)).required()
+            type: joi.string().valid(...Object.values(TASK_TYPE)).optional()
         })).optional(),
     comment: joi.string().optional()
 })
@@ -37,8 +36,7 @@ export const updateTaskSchema = joi.object().keys({
     userId: joi.string().optional(),
     description: joi.string().allow('', null),
     status: joi.string().valid(...Object.values(TASK_STATUS)),
-    boardColumn: joi.string().valid('to_do','pending','inprogress','completed'),
-    priority: joi.string().valid('low','medium','high'),
+    priority: joi.string().valid(...Object.values(TASK_PRIORITY)),
     client: joi.string().allow('', null),
     labels: joi.array().items(joi.string()),
     startDate: joi.date(),
