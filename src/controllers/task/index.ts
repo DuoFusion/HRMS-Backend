@@ -15,7 +15,7 @@ export const add_task = async (req, res) => {
         if (!value.status) {
             value.status = 'pending';
         }
-
+        
         value.statusHistory = [{
             fromStatus: null,
             toStatus: value.status,
@@ -25,12 +25,13 @@ export const add_task = async (req, res) => {
 
         value.userId = new ObjectId(user._id);
         
-
-        value.comments = [{
-            text: value.comment,
-            userId: new ObjectId(req.headers.user._id),
-            createdAt: new Date()
-        }];
+        if(value.comment){
+            value.comments = [{
+                text: value.comment,
+                userId: new ObjectId(req.headers.user._id),
+                createdAt: new Date()
+            }];
+        }
 
         const response = await createData(taskModel, value);
 
