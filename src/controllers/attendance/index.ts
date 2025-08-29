@@ -58,12 +58,10 @@ export const punch_in = async (req, res) => {
 
         let response;
         if (existingAttendance) {
-            // Append new session
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
             response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, {
                 ...attendanceData,
-                // keep legacy top-level for first session of the day
                 checkIn: existingAttendance.checkIn || currentTime,
                 sessions
             });
@@ -346,15 +344,15 @@ export const get_today_attendance = async (req, res) => {
         if (lastAttendance) {
             const lastBase = (lastAttendance && typeof lastAttendance.toObject === 'function') ? lastAttendance.toObject() : lastAttendance;
             const lastSessions = Array.isArray(lastBase.sessions) && lastBase.sessions.length > 0 ? lastBase.sessions : (lastBase.checkIn ? [{ checkIn: lastBase.checkIn, checkOut: lastBase.checkOut, breaks: [] }] : []);
-            
+
             const lastSession = lastSessions.length > 0 ? lastSessions[lastSessions.length - 1] : null;
             lastPunchOut = lastSession ? (lastSession.checkIn && lastSession.checkOut) : (lastBase.checkIn && lastBase.checkOut);
         }
 
-        if(!lastAttendance) lastPunchOut = true
+        if (!lastAttendance) lastPunchOut = true
 
         if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
-        
+
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
         const formatted = {
             ...base,
@@ -677,26 +675,26 @@ export const manual_punch_out = async (req, res) => {
             const timeStr = value.customTime;
             const [timePart, period] = timeStr.split(' ');
             const [hours, minutes] = timePart.split(':').map(Number);
-            
+
             let hour24 = hours;
             if (period === 'PM' && hours !== 12) hour24 = hours + 12;
             if (period === 'AM' && hours === 12) hour24 = 0;
-            
+
             punchOutTime = new Date(today);
             punchOutTime.setHours(hour24, minutes, 0, 0);
         }
-        
+
         let checkInTime: Date;
         if (openSessionIndex >= 0) {
             checkInTime = new Date(sessions[openSessionIndex].checkIn);
         } else {
             checkInTime = new Date(attendance.checkIn);
         }
-        
+
         if (punchOutTime <= checkInTime) {
             return res.status(400).json(new apiResponse(400, "Punch-out time must be after check-in time", {}, {}));
         }
-        
+
         if (openSessionIndex >= 0) {
             const session = sessions[openSessionIndex];
             if (Array.isArray(session.breaks)) {

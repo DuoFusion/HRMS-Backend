@@ -12,7 +12,7 @@ const TaskSchema = new mongoose.Schema({
     endDate: { type: Date },
     progressPercent: { type: Number, min: 0, max: 100, default: 0 },
 
-    assignees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }],
+    userIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }],
     commentsCount: { type: Number, default: 0 },
     attachmentsCount: { type: Number, default: 0 },
 

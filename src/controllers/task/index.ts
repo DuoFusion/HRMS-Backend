@@ -139,7 +139,7 @@ export const get_all_task = async (req, res) => {
             { path: 'projectId', select: 'name' },
             { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
             { path: 'comments.userId', select: 'fullName email role profilePhoto' },
-            { path: 'assignees', select: 'fullName email role profilePhoto' },
+            { path: 'userIds', select: 'fullName email role profilePhoto' },
         ]
 
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
