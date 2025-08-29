@@ -77,6 +77,12 @@ export const TASK_STATUS = {
     COMPLETED: 'completed',
 }
 
+export const TASK_PRIORITY = {
+    HIGH: 'high',
+    MEDIUM: 'medium',
+    LOW: 'low',
+}
+
 export const TASK_TYPE = {
     BREAK: 'break',
     LUNCH: 'lunch',
