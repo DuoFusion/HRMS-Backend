@@ -155,6 +155,15 @@ export const task_data_per_day = async (user) => {
             { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
+                    from: "projects",
+                    localField: "projectId",
+                    foreignField: "_id",
+                    as: "project"
+                }
+            },
+            { $unwind: { path: "$project", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
                     from: "users",
                     localField: "userIds",
                     foreignField: "_id",
@@ -168,6 +177,7 @@ export const task_data_per_day = async (user) => {
                     status: 1,
                     "user.fullName": 1,
                     "user.profilePhoto": 1,
+                    "project.name": 1,
                     assignedUsers: {
                         $map: {
                             input: "$assignedUsers",
@@ -218,7 +228,7 @@ export const leave_data_approve_by_admin = async () => {
                     "user.profilePhoto": 1
                 }
             },
-            { $sort: { startDate: 1 } }
+            { $sort: { endDate: 1 } }
         ]);
     } catch (error) {
         console.log(error);
