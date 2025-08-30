@@ -1,6 +1,6 @@
-import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
+import { apiResponse, HOLIDAY_TYPE, LEAVE_STATUS, ROLES } from "../../common";
 import { responseMessage } from "../../helper";
-import { leaveModel, taskModel, userModel } from "../../database";
+import { holidayModel, leaveModel, taskModel, userModel } from "../../database";
 
 const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -9,8 +9,9 @@ export const get_dashboard = async (req, res) => {
     try {
         let [sec1, sec2, sec3] = await Promise.all([
             (async () => {
-                let birthday = await upcoming_birthday_data_all_user(user);
-                return { birthday };
+                let birthday = await upcoming_birthday_data_all_user();
+                let holiday = await holiday_data_public();
+                return { birthday, holiday };
             })(),
 
             (async () => {
@@ -19,7 +20,7 @@ export const get_dashboard = async (req, res) => {
             })(),
 
             (async () => {
-                let leaves = await leave_data_approve_by_admin(user);
+                let leaves = await leave_data_approve_by_admin();
                 return { approvedLeaves: leaves };
             })(),
         ]);
@@ -31,7 +32,7 @@ export const get_dashboard = async (req, res) => {
 };
 
 
-export const upcoming_birthday_data_all_user = async (user) => {
+export const upcoming_birthday_data_all_user = async () => {
     try {
         const today = new Date();
         const currentMonth = today.getMonth() + 1;
@@ -186,7 +187,7 @@ export const task_data_per_day = async (user) => {
     }
 };
 
-export const leave_data_approve_by_admin = async (user) => {
+export const leave_data_approve_by_admin = async () => {
     try {
         return await leaveModel.aggregate([
             {
@@ -218,6 +219,35 @@ export const leave_data_approve_by_admin = async (user) => {
                 }
             },
             { $sort: { startDate: 1 } }
+        ]);
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+export const holiday_data_public = async () => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return await holidayModel.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    isBlocked: false,
+                    type: HOLIDAY_TYPE.COMPANY,
+                    date: { $gte: today }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    title: 1,
+                    date: 1,
+                }
+            },
+            { $sort: { date: 1 } },
+            { $limit: 5 }
         ]);
     } catch (error) {
         console.log(error);
