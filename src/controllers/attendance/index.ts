@@ -1,5 +1,5 @@
 import { attendanceModel, userModel, companyModel, holidayModel } from "../../database";
-import { apiResponse, ROLES } from "../../common";
+import { apiResponse, ATTENDANCE_STATUS, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
@@ -357,15 +357,14 @@ export const get_today_attendance = async (req, res) => {
         const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
 
         let lastPunchOut = false;
-        if (lastAttendance) {
+        if (lastAttendance && lastAttendance.status === ATTENDANCE_STATUS.PRESENT) {
             const lastBase = (lastAttendance && typeof lastAttendance.toObject === 'function') ? lastAttendance.toObject() : lastAttendance;
             const lastSessions = Array.isArray(lastBase.sessions) && lastBase.sessions.length > 0 ? lastBase.sessions : (lastBase.checkIn ? [{ checkIn: lastBase.checkIn, checkOut: lastBase.checkOut, breaks: [] }] : []);
 
             const lastSession = lastSessions.length > 0 ? lastSessions[lastSessions.length - 1] : null;
             lastPunchOut = lastSession ? (lastSession.checkIn && lastSession.checkOut) : (lastBase.checkIn && lastBase.checkOut);
         }
-
-        if (!lastAttendance) lastPunchOut = true
+        if (!lastAttendance || lastAttendance.sessions.length === 0) lastPunchOut = true
 
         if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
 
