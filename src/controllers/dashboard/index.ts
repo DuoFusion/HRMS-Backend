@@ -49,7 +49,7 @@ export const upcoming_birthday_data_all_user = async (user) => {
                             { $eq: [{ $dayOfMonth: "$dob" }, currentDay] }
                         ]
                     },
-                    
+
                     daysUntilBirthday: {
                         $let: {
                             vars: {
@@ -100,8 +100,8 @@ export const upcoming_birthday_data_all_user = async (user) => {
                     isValidUpcoming: true
                 }
             },
-            { 
-                $project: { 
+            {
+                $project: {
                     _id: 0,
                     fullName: 1,
                     profilePhoto: 1,
@@ -109,7 +109,7 @@ export const upcoming_birthday_data_all_user = async (user) => {
                     birthDay: 1,
                     daysUntilBirthday: 1,
                     isToday: 1
-                } 
+                }
             },
             { $sort: { daysUntilBirthday: 1 } },
             { $limit: 4 }
@@ -121,22 +121,26 @@ export const upcoming_birthday_data_all_user = async (user) => {
 };
 
 export const task_data_per_day = async (user) => {
-    let match: any = {}
+    let match: any = {};
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
 
-        if (user.role !== ROLES.ADMIN) match.userId = new ObjectId(user._id)
+        if (user.role !== ROLES.ADMIN) {
+            match.$or = [
+                { userId: new ObjectId(user._id) },
+                { userIds: { $in: [new ObjectId(user._id)] } }
+            ];
+        }
 
         return await taskModel.aggregate([
             {
                 $match: {
                     ...match,
                     isDeleted: false,
-                    isBlocked: false,
-                    startDate: { $gte: today }
+                    endDate: { $gte: today }
                 }
             },
             {
@@ -147,14 +151,32 @@ export const task_data_per_day = async (user) => {
                     as: "user"
                 }
             },
-            { $unwind: "$user" },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userIds",
+                    foreignField: "_id",
+                    as: "assignedUsers"
+                }
+            },
             {
                 $project: {
                     title: 1,
                     description: 1,
                     status: 1,
-                    "user.firstName": 1,
-                    "user.lastName": 1
+                    "mainUser.fullName": 1,
+                    "mainUser.profilePhoto": 1,
+                    assignedUsers: {
+                        $map: {
+                            input: "$assignedUsers",
+                            as: "u",
+                            in: {
+                                fullName: "$$u.fullName",
+                                profilePhoto: "$$u.profilePhoto"
+                            }
+                        }
+                    }
                 }
             },
             { $sort: { startDate: 1 } }
@@ -191,8 +213,8 @@ export const leave_data_approve_by_admin = async (user) => {
                     type: 1,
                     reason: 1,
                     status: 1,
-                    "user.firstName": 1,
-                    "user.lastName": 1
+                    "user.fullName": 1,
+                    "user.profilePhoto": 1
                 }
             },
             { $sort: { startDate: 1 } }

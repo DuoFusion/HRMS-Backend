@@ -2,7 +2,6 @@ import { CronJob } from 'cron';
 import { invoiceModel, userModel, attendanceModel, holidayModel, leaveModel } from "../database";
 import { calculateMonthlySalaryForUser, getNextInvoiceNumber, getPreviousMonthRange, makeSalaryServiceLine, computeInvoiceTotals } from "./salary";
 import { ATTENDANCE_STATUS, LEAVE_STATUS, ROLES } from '../common';
-import { getEndOfDayIst, getStartOfDayIst } from './timezone';
 
 export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function () {
 	try {
