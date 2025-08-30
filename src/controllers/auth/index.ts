@@ -84,7 +84,7 @@ export const login = async (req, res) => {
         let moduleData = [];
         moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();
         let response = { ...userResponse, roleData, moduleData }
-        if (response.roleData._id) {
+        if (response.roleData && response.roleData._id) {
             let newRoleDetailData = [],
                 newRoleDetailObj: any = {};
             const roleDetailData = await permissionModel.find({ roleId: new ObjectId(response.roleData._id) });
