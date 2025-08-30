@@ -165,8 +165,8 @@ export const task_data_per_day = async (user) => {
                     title: 1,
                     description: 1,
                     status: 1,
-                    "mainUser.fullName": 1,
-                    "mainUser.profilePhoto": 1,
+                    "user.fullName": 1,
+                    "user.profilePhoto": 1,
                     assignedUsers: {
                         $map: {
                             input: "$assignedUsers",
