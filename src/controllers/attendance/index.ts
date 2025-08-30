@@ -15,7 +15,7 @@ export const punch_in = async (req, res) => {
         // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
-        
+
         const queryEnd = new Date();
         queryEnd.setHours(23, 59, 59, 999);
 
@@ -55,7 +55,7 @@ export const punch_in = async (req, res) => {
         // Create the date for storing attendance (current date without time)
         const attendanceDate = new Date();
         attendanceDate.setHours(0, 0, 0, 0);
-        
+
         const attendanceData: any = {
             userId: new ObjectId(user._id),
             date: attendanceDate,
@@ -106,7 +106,7 @@ export const punch_out = async (req, res) => {
         // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
-        
+
         const queryEnd = new Date();
         queryEnd.setHours(23, 59, 59, 999);
 
@@ -347,14 +347,15 @@ export const get_today_attendance = async (req, res) => {
     let { user } = req.headers;
     try {
         // Create IST timezone boundaries using setHours for database query
-        const queryStart = new Date();
-        queryStart.setHours(0, 0, 0, 0);
-        
-        const queryEnd = new Date();
-        queryEnd.setHours(23, 59, 59, 999);
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStart, $lt: queryEnd }, isDeleted: false }, {}, {});
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-        const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: todayStart, $lt: todayEnd }, isDeleted: false }, {}, {});
+
+        const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: todayStart }, isDeleted: false }, {}, { sort: { date: -1 } });
 
         let lastPunchOut = false;
         if (lastAttendance && lastAttendance.status === ATTENDANCE_STATUS.PRESENT) {
@@ -390,7 +391,7 @@ export const get_attendance_summary = async (req, res) => {
         // Create IST timezone boundaries using setHours for database query
         const queryStartToday = new Date(now);
         queryStartToday.setHours(0, 0, 0, 0);
-        
+
         const queryEndToday = new Date(now);
         queryEndToday.setHours(23, 59, 59, 999);
 
@@ -585,7 +586,7 @@ export const break_in = async (req, res) => {
         // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
-        
+
         const queryEnd = new Date();
         queryEnd.setHours(23, 59, 59, 999);
 
@@ -627,7 +628,7 @@ export const break_out = async (req, res) => {
         // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
-        
+
         const queryEnd = new Date();
         queryEnd.setHours(23, 59, 59, 999);
 
@@ -700,7 +701,7 @@ export const manual_punch_out = async (req, res) => {
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
 
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), isDeleted: false }, {}, { sort: { date: -1 } });
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: queryStart }, isDeleted: false }, {}, { sort: { date: -1 } });
         if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found for today", {}, {}));
 
         let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
