@@ -10,6 +10,7 @@
       "outDir": "./build",
       "forceConsistentCasingInFileNames": true,
       "emitDecoratorMetadata": true,
+       "skipLibCheck": true,
       // "noImplicitReturns": true,
       // "noImplicitThis": true,
       // "noImplicitAny": true,

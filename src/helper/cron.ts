@@ -47,16 +47,18 @@ export const dailyAttendanceStatusJob = new CronJob('* * * * * *', async functio
 
 		const yesterdayEnd = new Date(yesterday);
 		yesterdayEnd.setHours(23, 59, 59, 999);
+		
 		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
-
+		
 		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false }).lean()
-
+	
 		const isHoliday = holidays.length > 0
+		
 		for (const user of users) {
 			if (isHoliday) continue;
 
 			const existingAttendance = await attendanceModel.findOne({ userId: user._id, date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false })
-
+			
 			if (existingAttendance) continue;
 
 			const leave = await leaveModel.findOne({
@@ -66,11 +68,12 @@ export const dailyAttendanceStatusJob = new CronJob('* * * * * *', async functio
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
+			
 			if (leave && leave.dayType === 'half') continue;
 
 			let status = ATTENDANCE_STATUS.ABSENT;
 			let remarks = 'Auto-marked absent - No attendance recorded'
-
+			
 			if (leave && leave.dayType === 'full') {
 				status = ATTENDANCE_STATUS.LEAVE
 				remarks = `Auto-marked leave - ${leave.type} leave approved`

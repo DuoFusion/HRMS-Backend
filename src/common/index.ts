@@ -108,3 +108,10 @@ export const PROJECT_STATUS = {
     COMPLETED: 'completed',
     CANCELLED: 'cancelled'
 }
+
+export const INVOICE_STATUS = {
+    DRAFT: 'draft',
+    SENT: 'sent',
+    PAID: 'paid',
+    CANCELLED: 'cancelled'
+}

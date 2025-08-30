@@ -5,7 +5,7 @@ const invoiceServiceSchema = new mongoose.Schema({
 	quantity: { type: Number, default: 1, min: 0 },
 	rate: { type: Number, default: 0, min: 0 },
 	taxPercent: { type: Number, default: 0, min: 0 },
-	discount: { type: Number, default: 0, min: 0 }, // percent per line
+	discount: { type: Number, default: 0, min: 0 }, 
 }, { _id: false });
 
 const invoiceTotalsSchema = new mongoose.Schema({

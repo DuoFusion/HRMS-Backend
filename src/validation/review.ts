@@ -10,6 +10,7 @@ export const addReviewSchema = Joi.object({
 
 export const updateReviewSchema = Joi.object({
     reviewId: Joi.string().required(),
+    userId: Joi.string().optional(),
     red: Joi.string().optional(),
     yellow: Joi.string().optional(),
     green: Joi.string().optional(),
