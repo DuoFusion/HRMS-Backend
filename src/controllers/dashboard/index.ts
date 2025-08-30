@@ -235,7 +235,7 @@ export const holiday_data_public = async () => {
                 $match: {
                     isDeleted: false,
                     isBlocked: false,
-                    type: HOLIDAY_TYPE.COMPANY,
+                    type: HOLIDAY_TYPE.PUBLIC,
                     date: { $gte: today }
                 }
             },
