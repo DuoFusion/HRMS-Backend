@@ -39,23 +39,41 @@ export const upcoming_birthday_data_all_user = async () => {
         const currentDay = today.getDate();
 
         return await userModel.aggregate([
+            // Convert DOB to IST in two steps
             {
                 $addFields: {
-                    birthMonth: { $month: "$dob" },
-                    birthDay: { $dayOfMonth: "$dob" },
+                    dobIST: {
+                        $dateAdd: {
+                            startDate: {
+                                $dateAdd: {
+                                    startDate: "$dob",
+                                    unit: "hour",
+                                    amount: 5
+                                }
+                            },
+                            unit: "minute",
+                            amount: 30
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    birthMonth: { $month: "$dobIST" },
+                    birthDay: { $dayOfMonth: "$dobIST" },
 
                     isToday: {
                         $and: [
-                            { $eq: [{ $month: "$dob" }, currentMonth] },
-                            { $eq: [{ $dayOfMonth: "$dob" }, currentDay] }
+                            { $eq: [{ $month: "$dobIST" }, currentMonth] },
+                            { $eq: [{ $dayOfMonth: "$dobIST" }, currentDay] }
                         ]
                     },
 
                     daysUntilBirthday: {
                         $let: {
                             vars: {
-                                monthDiff: { $subtract: [{ $month: "$dob" }, currentMonth] },
-                                dayDiff: { $subtract: [{ $dayOfMonth: "$dob" }, currentDay] }
+                                monthDiff: { $subtract: [{ $month: "$dobIST" }, currentMonth] },
+                                dayDiff: { $subtract: [{ $dayOfMonth: "$dobIST" }, currentDay] }
                             },
                             in: {
                                 $cond: {
@@ -96,11 +114,7 @@ export const upcoming_birthday_data_all_user = async () => {
                     }
                 }
             },
-            {
-                $match: {
-                    isValidUpcoming: true
-                }
-            },
+            { $match: { isValidUpcoming: true } },
             {
                 $project: {
                     _id: 0,
@@ -120,6 +134,7 @@ export const upcoming_birthday_data_all_user = async () => {
         throw error;
     }
 };
+
 
 export const task_data_per_day = async (user) => {
     let match: any = {};
