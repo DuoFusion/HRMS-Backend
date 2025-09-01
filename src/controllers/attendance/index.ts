@@ -454,7 +454,8 @@ export const get_attendance_summary = async (req, res) => {
         const todayEntry: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: queryStartToday, $lt: queryEndToday }, isDeleted: false }, {}, {});
         const weekEntries: any[] = await loadRange(startOfWeek, endOfWeek);
         const monthEntries: any[] = await loadRange(startOfMonth, endOfMonth);
-
+        let dailyTargetHours = 9;
+        let companyTotalWorkingHours = 9;
         const computeFromSessions = (entries: any[]) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
@@ -483,9 +484,7 @@ export const get_attendance_summary = async (req, res) => {
         const weekTotals = computeFromSessions(weekEntries);
         const monthTotals = computeFromSessions(monthEntries);
 
-        // Dynamic targets based on company working hours and working days (excludes weekends and holidays)
-        let dailyTargetHours = 9; // default
-        let companyTotalWorkingHours = 9; // default for overtime calculation
+
         const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { companyId: 1 }, {});
         if (dbUser?.companyId) {
             const company: any = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { workingHours: 1, totalWorkingHours: 1 }, {});
