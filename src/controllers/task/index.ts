@@ -113,7 +113,7 @@ export const get_all_task = async (req, res) => {
 
         options.sort = { updatedAt: -1 }
 
-        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { userIds: new ObjectId(user._id) }];
+        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { userIds: {$in: [new ObjectId(user._id)]} }];
 
         if (value.status) criteria.status = value.status;
         if (value.boardColumn) criteria.boardColumn = value.boardColumn;
