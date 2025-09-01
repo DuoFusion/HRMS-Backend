@@ -142,7 +142,7 @@ export const get_all_task = async (req, res) => {
             { path: 'comments.userId', select: 'fullName email role profilePhoto' },
             { path: 'userIds', select: 'fullName email role profilePhoto' },
         ]
-        console.log("criteria", criteria);
+        
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
         const totalCount = await countData(taskModel, criteria)
 
