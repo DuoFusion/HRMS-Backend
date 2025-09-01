@@ -15,7 +15,7 @@ export const add_task = async (req, res) => {
         if (!value.status) {
             value.status = 'pending';
         }
-        
+
         value.statusHistory = [{
             fromStatus: null,
             toStatus: value.status,
@@ -24,8 +24,8 @@ export const add_task = async (req, res) => {
         }];
 
         value.userId = new ObjectId(user._id);
-        
-        if(value.comment){
+
+        if (value.comment) {
             value.comments = [{
                 text: value.comment,
                 userId: new ObjectId(req.headers.user._id),
@@ -113,7 +113,7 @@ export const get_all_task = async (req, res) => {
 
         options.sort = { updatedAt: -1 }
 
-        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { assignees: new ObjectId(user._id) }];
+        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { userIds: new ObjectId(user._id) }];
 
         if (value.status) criteria.status = value.status;
         if (value.boardColumn) criteria.boardColumn = value.boardColumn;
@@ -142,7 +142,7 @@ export const get_all_task = async (req, res) => {
             { path: 'comments.userId', select: 'fullName email role profilePhoto' },
             { path: 'userIds', select: 'fullName email role profilePhoto' },
         ]
-
+        console.log("criteria", criteria);
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
         const totalCount = await countData(taskModel, criteria)
 
