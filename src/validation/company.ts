@@ -12,7 +12,8 @@ export const addCompanySchema = Joi.object().keys({
         start: Joi.string().required(),
         end: Joi.string().required()
     }).required(),
-    lateMinutes: Joi.number().required()
+    lateMinutes: Joi.number().required(),
+    totalWorkingHours: Joi.number().required()
 });
 
 export const editCompanySchema = Joi.object().keys({
@@ -29,6 +30,7 @@ export const editCompanySchema = Joi.object().keys({
         end: Joi.string().optional()
     }).optional(),
     lateMinutes: Joi.number().optional(),
+    totalWorkingHours: Joi.number().optional(),
     isBlocked: Joi.boolean().optional(),
 });
 

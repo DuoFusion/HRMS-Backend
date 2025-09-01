@@ -114,7 +114,7 @@ export const punch_out = async (req, res) => {
 
         if (!attendance) return res.status(400).json(new apiResponse(400, "No check-in record found for today", {}, {}));
 
-        // Determine open session
+        const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { companyId: 1 }, {});
         let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
         let hasSessions = sessions.length > 0;
         let openSessionIndex = hasSessions ? sessions.findIndex((s: any) => s && s.checkIn && !s.checkOut) : -1;
@@ -130,7 +130,7 @@ export const punch_out = async (req, res) => {
             attendance.checkOut = currentTime;
         }
 
-        const computeTotals = (att: any) => {
+        const computeTotals = async (att: any, companyId: any) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
             const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
@@ -148,12 +148,22 @@ export const punch_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+            
+            // Get company's totalWorkingHours setting
+            let companyTotalWorkingHours = 9; // default fallback
+            if (companyId) {
+                const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
+                if (company?.totalWorkingHours) {
+                    companyTotalWorkingHours = company.totalWorkingHours;
+                }
+            }
+            
+            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
         };
 
-        const totals = computeTotals({ ...attendance.toObject?.() ?? attendance, sessions });
+        const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions }, dbUser?.companyId);
         const updateDataObj: any = {
             checkOut: attendance.checkOut || currentTime,
             sessions,
@@ -282,7 +292,8 @@ export const updateAttendance = async (req, res) => {
 
         const existingAttendance = await getFirstMatch(attendanceModel, { _id: new ObjectId(id), isDeleted: false }, {}, {});
 
-        if (!existingAttendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}));
+        if (!existingAttendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}))
+        const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(existingAttendance.userId), isDeleted: false }, { companyId: 1 }, {});
 
         let updateData = { ...value };
 
@@ -293,7 +304,17 @@ export const updateAttendance = async (req, res) => {
             if (checkIn && checkOut) {
                 const totalWorkingHours = getHoursDifference(checkIn, checkOut);
                 const productiveHours = Math.max(0, totalWorkingHours - ((value.breakMinutes || existingAttendance.breakMinutes) / 60));
-                const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+                
+                // Get company's totalWorkingHours setting
+                let companyTotalWorkingHours = 9; // default fallback
+                if (dbUser?.companyId) {
+                    const company = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
+                    if (company?.totalWorkingHours) {
+                        companyTotalWorkingHours = company.totalWorkingHours;
+                    }
+                }
+                
+                const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
                 const productionHours = Math.round(productiveHours * 100) / 100;
 
                 updateData = {
@@ -453,7 +474,7 @@ export const get_attendance_summary = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - breakMinutes / 60);
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
         };
@@ -464,9 +485,10 @@ export const get_attendance_summary = async (req, res) => {
 
         // Dynamic targets based on company working hours and working days (excludes weekends and holidays)
         let dailyTargetHours = 9; // default
+        let companyTotalWorkingHours = 9; // default for overtime calculation
         const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { companyId: 1 }, {});
         if (dbUser?.companyId) {
-            const company: any = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { workingHours: 1 }, {});
+            const company: any = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { workingHours: 1, totalWorkingHours: 1 }, {});
             const startStr: string | undefined = company?.workingHours?.start;
             const endStr: string | undefined = company?.workingHours?.end;
             if (startStr && endStr) {
@@ -475,6 +497,9 @@ export const get_attendance_summary = async (req, res) => {
                 if (s && e) {
                     dailyTargetHours = Math.max(0, getHoursDifference(s, e));
                 }
+            }
+            if (company?.totalWorkingHours) {
+                companyTotalWorkingHours = company.totalWorkingHours;
             }
         }
 
@@ -649,7 +674,7 @@ export const break_out = async (req, res) => {
         session.breaks[actualIndex].breakOut = now;
 
         // Recompute daily totals
-        const computeTotals = (att: any, sessionsCalc: any[]) => {
+        const computeTotals = async (att: any, sessionsCalc: any[]) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
             for (const s of sessionsCalc) {
@@ -668,12 +693,22 @@ export const break_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+            
+            // Get company's totalWorkingHours setting
+            let companyTotalWorkingHours = 9; // default fallback
+            if (user?.companyId) {
+                const company = await getFirstMatch(companyModel, { _id: new ObjectId(user.companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
+                if (company?.totalWorkingHours) {
+                    companyTotalWorkingHours = company.totalWorkingHours;
+                }
+            }
+            
+            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
         };
 
-        const totals = computeTotals(attendance, sessions);
+        const totals = await computeTotals(attendance, sessions);
         const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, {
             sessions,
             totalWorkingHours: totals.totalWorkingHours,
@@ -749,7 +784,7 @@ export const manual_punch_out = async (req, res) => {
             attendance.checkOut = punchOutTime;
         }
 
-        const computeTotals = (att: any) => {
+        const computeTotals = async (att: any) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
             const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
@@ -767,12 +802,22 @@ export const manual_punch_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60);
+            
+            // Get company's totalWorkingHours setting
+            let companyTotalWorkingHours = 9; // default fallback
+            if (user?.companyId) {
+                const company = await getFirstMatch(companyModel, { _id: new ObjectId(user.companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
+                if (company?.totalWorkingHours) {
+                    companyTotalWorkingHours = company.totalWorkingHours;
+                }
+            }
+            
+            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
         };
 
-        const totals = computeTotals({ ...attendance.toObject?.() ?? attendance, sessions });
+        const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions });
         const updateDataObj: any = {
             checkOut: attendance.checkOut || punchOutTime,
             sessions,
