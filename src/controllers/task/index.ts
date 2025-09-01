@@ -107,7 +107,7 @@ export const get_all_task = async (req, res) => {
         const { error, value } = getAllTasksSchema.validate(req.query)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
+        let { page, limit, search, userFilter, startDate, endDate, priorityFilter } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false
 
@@ -115,18 +115,14 @@ export const get_all_task = async (req, res) => {
 
         if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { userIds: {$in: [new ObjectId(user._id)]} }];
 
-        if (value.status) criteria.status = value.status;
-        if (value.boardColumn) criteria.boardColumn = value.boardColumn;
-        if (value.priority) criteria.priority = value.priority;
-        if (value.client) criteria.client = value.client;
-        if (value.assignee) criteria.assignees = new ObjectId(value.assignee);
-        if (value.startDate && value.endDate) criteria.createdAt = { $gte: value.startDate, $lte: value.endDate };
+        if (priorityFilter) criteria.priority = priorityFilter;
+        if (userFilter) criteria.$or = [{ userId: new ObjectId(userFilter) }, { userIds: {$in: [new ObjectId(userFilter)]} }];
+        if (startDate && endDate) criteria.endDate = { $gte: startDate, $lte: endDate };
 
         if (search) {
             criteria.$or = [
                 { title: { $regex: search, $options: "si" } },
                 { description: { $regex: search, $options: "si" } },
-                { status: { $regex: search, $options: "si" } },
             ]
         }
 

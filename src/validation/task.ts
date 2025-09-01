@@ -67,12 +67,9 @@ export const deleteTaskSchema = joi.object().keys({
 })
 
 export const getAllTasksSchema = joi.object({
-    status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
     activeFilter: joi.boolean().optional(),
-    boardColumn: joi.string().valid('to_do','pending','inprogress','completed').optional(),
-    priority: joi.string().valid('low','medium','high').optional(),
-    client: joi.string().optional(),
-assignee: joi.string().optional(),
+    priorityFilter: joi.string().valid(...Object.values(TASK_PRIORITY)).optional(),
+    userFilter: joi.string().optional(),
     startDate: joi.date().optional(),
     endDate: joi.date().optional(),
     search: joi.string().optional(),
