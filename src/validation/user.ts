@@ -87,5 +87,10 @@ export const getAllUserSchema = Joi.object().keys({
     statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
     search: Joi.string().optional(),
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional(),
+    roleFilter: Joi.string().optional().allow(""),
+    companyFilter: Joi.string().optional().allow(""),
+    dateFilter: Joi.string().valid("asc", "desc").optional(),
     activeFilter: Joi.boolean().optional()
 });
