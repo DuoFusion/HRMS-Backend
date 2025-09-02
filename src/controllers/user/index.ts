@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { apiResponse, ROLES } from '../../common';
-import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { countData, createData, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { roleModel, userModel } from '../../database';
 import { addUserSchema, deleteUserSchema, editUserSchema, getAllUserSchema, getUserSchema } from '../../validation';
 const ObjectId = require("mongoose").Types.ObjectId
@@ -106,7 +106,7 @@ export const get_all_users = async (req, res) => {
         const { error, value } = getAllUserSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search, roleFilter, activeFilter, } = value, criteria: any = {}, options: any = {};
+        let { page, limit, search, roleFilter, activeFilter, companyFilter, dateFilter } = value, criteria: any = {}, options: any = {};
 
         if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
 
@@ -115,6 +115,9 @@ export const get_all_users = async (req, res) => {
         criteria.role = { $ne: ROLES.ADMIN }
         options.sort = { createdAt: -1 }
         if (roleFilter) criteria.role = roleFilter;
+        if (companyFilter) criteria.companyId = new ObjectId(companyFilter);
+
+        if (dateFilter) criteria.date = dateFilter;
 
         criteria.isBlocked = activeFilter === true ? true : false
 
@@ -134,7 +137,10 @@ export const get_all_users = async (req, res) => {
             options.limit = parseInt(limit);
         }
 
-        const response = await getDataWithSorting(userModel, criteria, '-password', options);
+        let populate = [
+            { path: "companyId", select: "name" },
+        ];
+        const response = await findAllWithPopulateWithSorting(userModel, criteria, '-password', options,populate);
         const totalCount = await countData(userModel, criteria);
 
         const stateObj = {

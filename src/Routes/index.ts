@@ -16,6 +16,7 @@ import { adminJWT } from '../helper'
 import { invoiceRoutes } from './invoice'
 import { reviewRoutes } from './review'
 import { projectRoutes } from './project'
+import { remarkRoutes } from './remark'
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -35,5 +36,6 @@ router.use('/company', companyRoutes)
 router.use('/attendance', attendanceRoutes)
 router.use('/invoice', invoiceRoutes)
 router.use('/review', reviewRoutes)
+router.use('/remarks', remarkRoutes)
 
 export { router }
