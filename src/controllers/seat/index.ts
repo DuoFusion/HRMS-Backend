@@ -1,6 +1,6 @@
 import { seatModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting } from "../../helper";
+import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addSeatSchema, updateSeatSchema, deleteSeatSchema, getAllSeatsSchema, getSeatByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -104,8 +104,10 @@ export const get_seat_by_id = async (req, res) => {
     try {
         const { error, value } = getSeatByIdSchema.validate(req.params);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
-        const response = await getFirstMatch(seatModel, { _id: new ObjectId(value.id), isDeleted: false }, {});
+        let populate = [
+            { path: "userId", select: "fullName profilePhoto" },
+        ];
+        const response = await findOneAndPopulate(seatModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {}, populate);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Seat"), {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Seat"), response, {}));
     } catch (error) {
