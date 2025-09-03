@@ -68,15 +68,22 @@ export const punch_in = async (req, res) => {
         if (existingAttendance) {
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
+            // Preserve original lateMinutes and status on subsequent punch-ins
             response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, {
-                ...attendanceData,
+                userId: new ObjectId(user._id),
+                date: attendanceDate,
+                remarks: value.remarks || existingAttendance.remarks || null,
+                status: existingAttendance.status,
+                lateMinutes: existingAttendance.lateMinutes,
                 checkIn: existingAttendance.checkIn || currentTime,
+                checkOut: null,
                 sessions
             });
         } else {
             response = await createData(attendanceModel, {
                 ...attendanceData,
                 checkIn: currentTime,
+                checkOut: null,
                 sessions: [newSession]
             });
         }
@@ -103,7 +110,6 @@ export const punch_out = async (req, res) => {
         const { error, value } = checkOutSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
 
@@ -119,15 +125,18 @@ export const punch_out = async (req, res) => {
         let hasSessions = sessions.length > 0;
         let openSessionIndex = hasSessions ? sessions.findIndex((s: any) => s && s.checkIn && !s.checkOut) : -1;
 
-        if (openSessionIndex === -1 && (!attendance.checkIn || attendance.checkOut)) {
-            return res.status(400).json(new apiResponse(400, "Already checked out for all sessions today", {}, {}));
-        }
-
         const currentTime = new Date();
         if (openSessionIndex >= 0) {
             sessions[openSessionIndex].checkOut = currentTime;
         } else {
-            attendance.checkOut = currentTime;
+            if (sessions.length > 0) {
+                const lastIdx = sessions.length - 1;
+                sessions[lastIdx].checkOut = currentTime;
+            } else if (attendance.checkIn) {
+                attendance.checkOut = currentTime;
+            } else {
+                return res.status(400).json(new apiResponse(400, "No open session or check-in to check out", {}, {}));
+            }
         }
 
         const computeTotals = async (att: any, companyId: any) => {
@@ -149,8 +158,7 @@ export const punch_out = async (req, res) => {
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
             
-            // Get company's totalWorkingHours setting
-            let companyTotalWorkingHours = 9; // default fallback
+            let companyTotalWorkingHours = 9;
             if (companyId) {
                 const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
                 if (company?.totalWorkingHours) {
