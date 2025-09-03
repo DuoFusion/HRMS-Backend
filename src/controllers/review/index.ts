@@ -1,5 +1,5 @@
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, getData, getDataWithSorting, reqInfo, responseMessage, updateData } from "../../helper";
+import { countData, createData, findAllWithPopulateWithSorting, getData, reqInfo, responseMessage, updateData } from "../../helper";
 import { reviewModel } from "../../database";
 import { addReviewSchema, deleteReviewSchema, getAllReviewSchema, getReviewSchema, updateReviewSchema } from "../../validation";
 
@@ -72,13 +72,15 @@ export const get_all_reviews = async (req, res) => {
             ];
         }
         options.sort = { createdAt: -1 }
-
+        let populate = [
+            { path: "userId", select: "fullName profilePhoto" },
+        ];
         if (page && limit) {
             options.skip = (parseInt(page) - 1) * parseInt(limit);
             options.limit = parseInt(limit);
         }
 
-        const response = await getDataWithSorting(reviewModel, criteria, {}, options);
+        const response = await findAllWithPopulateWithSorting(reviewModel, criteria, {}, options, populate);
         const totalCount = await countData(reviewModel, criteria);
 
         const stateObj = {
