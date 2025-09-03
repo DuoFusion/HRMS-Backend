@@ -17,6 +17,7 @@ import { invoiceRoutes } from './invoice'
 import { reviewRoutes } from './review'
 import { projectRoutes } from './project'
 import { remarkRoutes } from './remark'
+import { seatRoutes } from './seat'
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -37,5 +38,6 @@ router.use('/attendance', attendanceRoutes)
 router.use('/invoice', invoiceRoutes)
 router.use('/review', reviewRoutes)
 router.use('/remarks', remarkRoutes)
+router.use('/seat', seatRoutes)
 
 export { router }

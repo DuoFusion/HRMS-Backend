@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { roleController } from '../controllers';
-import { adminJWT, VALIDATE_ROLE } from '../helper';
+import { VALIDATE_ROLE } from '../helper';
 import { ROLES } from '../common';
 
 const router = Router();
