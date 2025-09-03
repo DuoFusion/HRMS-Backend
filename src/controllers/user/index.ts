@@ -108,7 +108,7 @@ export const get_all_users = async (req, res) => {
 
         let { page, limit, search, roleFilter, activeFilter, companyFilter, dateFilter } = value, criteria: any = {}, options: any = {};
 
-        if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
         criteria.isDeleted = false
 
