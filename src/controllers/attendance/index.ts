@@ -1,4 +1,4 @@
-import { attendanceModel, userModel, companyModel, holidayModel } from "../../database";
+import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_STATUS, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
@@ -45,6 +45,26 @@ export const punch_in = async (req, res) => {
 
         const userStartStr: string | undefined = dbUser?.workingTime?.start;
         lateMinutes = computeLateMinutesIst(currentTime, userStartStr, grace);
+
+        // Create late punch-in remark if applicable
+        let latePunchInRemark = "";
+        if (lateMinutes > 0) {
+            latePunchInRemark = `Late punch-in: ${lateMinutes} minutes after expected start time (${userStartStr || 'Not set'})`;
+
+            // Create a remark entry for late punch-in
+            try {
+                const remarkData = {
+                    note: latePunchInRemark,
+                    userId: new ObjectId(user._id),
+                    isDeleted: false
+                };
+                await createData(remarkModel, remarkData);
+            } catch (remarkError) {
+                console.log("Failed to create late punch-in remark:", remarkError);
+                // Don't fail the punch-in if remark creation fails
+            }
+        }
+
         // Build session to append
         const newSession = {
             checkIn: currentTime,
@@ -52,27 +72,35 @@ export const punch_in = async (req, res) => {
             breaks: [] as any[]
         } as any;
 
-        // Create the date for storing attendance (current date without time)
         const attendanceDate = new Date();
         attendanceDate.setHours(0, 0, 0, 0);
+
+        let finalRemarks = value.remarks || "";
+        if (latePunchInRemark) {
+            finalRemarks = finalRemarks ? `${finalRemarks}; ${latePunchInRemark}` : latePunchInRemark;
+        }
 
         const attendanceData: any = {
             userId: new ObjectId(user._id),
             date: attendanceDate,
             status,
             lateMinutes,
-            remarks: value.remarks || null
+            remarks: finalRemarks || null
         };
 
         let response;
         if (existingAttendance) {
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
-            // Preserve original lateMinutes and status on subsequent punch-ins
+            let existingFinalRemarks = value.remarks || existingAttendance.remarks || "";
+            if (latePunchInRemark) {
+                existingFinalRemarks = existingFinalRemarks ? `${existingFinalRemarks}; ${latePunchInRemark}` : latePunchInRemark;
+            }
+
             response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, {
                 userId: new ObjectId(user._id),
                 date: attendanceDate,
-                remarks: value.remarks || existingAttendance.remarks || null,
+                remarks: existingFinalRemarks || null,
                 status: existingAttendance.status,
                 lateMinutes: existingAttendance.lateMinutes,
                 checkIn: existingAttendance.checkIn || currentTime,
@@ -157,7 +185,7 @@ export const punch_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            
+
             let companyTotalWorkingHours = 9;
             if (companyId) {
                 const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
@@ -165,7 +193,7 @@ export const punch_out = async (req, res) => {
                     companyTotalWorkingHours = company.totalWorkingHours;
                 }
             }
-            
+
             const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
@@ -210,7 +238,7 @@ export const get_all_attendance = async (req, res) => {
 
         criteria.isDeleted = false
 
-        options.sort = { createdAt: -1 }
+        options.sort = { date: -1, createdAt: -1 }
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
@@ -312,7 +340,7 @@ export const updateAttendance = async (req, res) => {
             if (checkIn && checkOut) {
                 const totalWorkingHours = getHoursDifference(checkIn, checkOut);
                 const productiveHours = Math.max(0, totalWorkingHours - ((value.breakMinutes || existingAttendance.breakMinutes) / 60));
-                
+
                 // Get company's totalWorkingHours setting
                 let companyTotalWorkingHours = 9; // default fallback
                 if (dbUser?.companyId) {
@@ -321,7 +349,7 @@ export const updateAttendance = async (req, res) => {
                         companyTotalWorkingHours = company.totalWorkingHours;
                     }
                 }
-                
+
                 const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
                 const productionHours = Math.round(productiveHours * 100) / 100;
 
@@ -700,7 +728,7 @@ export const break_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            
+
             // Get company's totalWorkingHours setting
             let companyTotalWorkingHours = 9; // default fallback
             if (user?.companyId) {
@@ -709,7 +737,7 @@ export const break_out = async (req, res) => {
                     companyTotalWorkingHours = company.totalWorkingHours;
                 }
             }
-            
+
             const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
@@ -809,7 +837,7 @@ export const manual_punch_out = async (req, res) => {
             }
             const totalWorkingHours = totalMinutes / 60;
             const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
-            
+
             // Get company's totalWorkingHours setting
             let companyTotalWorkingHours = 9; // default fallback
             if (user?.companyId) {
@@ -818,7 +846,7 @@ export const manual_punch_out = async (req, res) => {
                     companyTotalWorkingHours = company.totalWorkingHours;
                 }
             }
-            
+
             const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
             const productionHours = Math.round(productiveHours * 100) / 100;
             return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
