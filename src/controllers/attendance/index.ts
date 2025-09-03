@@ -212,7 +212,7 @@ export const get_all_attendance = async (req, res) => {
 
         options.sort = { createdAt: -1 }
 
-        if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id)
+        if (user.role !== ROLES.ADMIN || user.role !== ROLES.HR) criteria.userId = new ObjectId(user._id)
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
