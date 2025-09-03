@@ -36,7 +36,7 @@ export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function (
 	}
 }, null, false, 'Asia/Kolkata');
 
-export const dailyAttendanceStatusJob = new CronJob('0 0 * * *', async function () {
+export const dailyAttendanceStatusJob = new CronJob('10 0 * * *', async function () {
 	try {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1)
