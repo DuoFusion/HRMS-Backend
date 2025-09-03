@@ -63,7 +63,7 @@ export const get_all_project = async (req, res) => {
 
         criteria.isDeleted = false
 
-        if (user.role !== ROLES.ADMIN || user.role !== ROLES.HR) criteria.userIds = { $in: [new ObjectId(user._id)] }
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userIds = { $in: [new ObjectId(user._id)] }
 
         if (statusFilter) criteria.status = statusFilter
 

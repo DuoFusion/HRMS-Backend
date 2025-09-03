@@ -67,7 +67,7 @@ export const get_all_remarks = async (req, res) => {
         let criteria: any = { isDeleted: false }, options: any = {};
         const { page, limit, search, userFilter } = value;
 
-        if (user.role !== ROLES.ADMIN) criteria.userId = new ObjectId(user._id);
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
 
         if (userFilter) criteria.userId = userFilter;
         if (search) criteria.note = { $regex: search, $options: "si" };

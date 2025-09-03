@@ -1,4 +1,4 @@
-import { apiResponse } from "../../common";
+import { apiResponse, ROLES } from "../../common";
 import { countData, createData, getData, getDataWithSorting, reqInfo, responseMessage, updateData } from "../../helper";
 import { reviewModel } from "../../database";
 import { addReviewSchema, deleteReviewSchema, getAllReviewSchema, getReviewSchema, updateReviewSchema } from "../../validation";
@@ -54,11 +54,14 @@ export const delete_review_by_id = async (req, res) => {
 
 export const get_all_reviews = async (req, res) => {
     reqInfo(req)
+    let { user } = req.headers
     try {
         const { error, value } = getAllReviewSchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
         let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
+
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
 
         criteria.isDeleted = false;
         if (search) {
