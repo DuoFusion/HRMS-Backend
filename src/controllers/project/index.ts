@@ -63,14 +63,14 @@ export const get_all_project = async (req, res) => {
 
         criteria.isDeleted = false
 
-        if (user.role !== ROLES.ADMIN) criteria.userIds = { $in: [new ObjectId(user._id)] }
+        if (user.role !== ROLES.ADMIN || user.role !== ROLES.HR) criteria.userIds = { $in: [new ObjectId(user._id)] }
 
         if (statusFilter) criteria.status = statusFilter
 
         if (sortOrder) options.sort = { createdAt: sortOrder === 'asc' ? 1 : -1 }
 
-        if(activeFilter === false) criteria.isBlocked = false
-        if(activeFilter === true) criteria.isBlocked =  true
+        if (activeFilter === false) criteria.isBlocked = false
+        if (activeFilter === true) criteria.isBlocked = true
 
         if (startDate && endDate) criteria.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) }
 
