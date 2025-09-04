@@ -1,5 +1,5 @@
 import { leaveModel } from "../../database";
-import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
+import { apiResponse, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting } from "../../helper";
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
 

@@ -1,6 +1,6 @@
 import { projectModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
+import { countData, createData, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addProjectSchema, deleteProjectSchema, getAllProjectsSchema, getProjectByIdSchema, updateProjectSchema } from "../../validation";
 
 const ObjectId = require('mongoose').Types.ObjectId;

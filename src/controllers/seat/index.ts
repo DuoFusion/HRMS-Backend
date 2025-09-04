@@ -1,5 +1,5 @@
 import { seatModel } from "../../database";
-import { apiResponse, ROLES } from "../../common";
+import { apiResponse } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addSeatSchema, updateSeatSchema, deleteSeatSchema, getAllSeatsSchema, getSeatByIdSchema } from "../../validation";
 
