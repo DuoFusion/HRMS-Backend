@@ -37,8 +37,8 @@ export const getAllLeavesSchema = Joi.object().keys({
     userFilter: Joi.string().optional(),
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
     statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
-    startDateFilter: Joi.date().optional(),
-    endDateFilter: Joi.date().optional(),
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional(),
     search: Joi.string().optional()
 });
 
