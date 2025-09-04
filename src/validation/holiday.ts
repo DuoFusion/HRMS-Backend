@@ -31,5 +31,7 @@ export const getAllHolidaySchema = Joi.object().keys({
     page: Joi.number().integer().optional(),
     limit: Joi.number().integer().optional(),
     search: Joi.string().optional(),
-    activeFilter: Joi.boolean().optional()
+    activeFilter: Joi.boolean().optional(),
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional(),
 })

@@ -58,7 +58,7 @@ export const get_all_holiday = async (req, res) => {
         const { error, value } = getAllHolidaySchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
-        let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+        let { page, limit, search, activeFilter, startDate, endDate } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false;
         if (search) {
@@ -68,6 +68,8 @@ export const get_all_holiday = async (req, res) => {
                 { type: { $regex: search, $options: 'si' } }
             ];
         }
+
+        if(startDate && endDate) criteria.date = { $gte: new Date(startDate), $lte: new Date(endDate) }
 
         criteria.isBlocked = activeFilter === true ? true : false
         options.sort = { createdAt: -1 }
