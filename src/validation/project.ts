@@ -42,6 +42,7 @@ export const getAllProjectsSchema = joi.object({
     limit: joi.number().integer().optional(),
     statusFilter: joi.string().valid(...Object.values(PROJECT_STATUS)).optional(),
     activeFilter: joi.boolean().optional(),
+    userFilter: joi.string().optional(),
     startDate: joi.string().optional(),
     endDate: joi.string().optional(),
     search: joi.string().optional(),

@@ -59,13 +59,15 @@ export const get_all_project = async (req, res) => {
         const { error, value } = getAllProjectsSchema.validate(req.query)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search, statusFilter, startDate, endDate, sortOrder, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+        let { page, limit, search, statusFilter, startDate, endDate, sortOrder, activeFilter, userFilter } = value, criteria: any = {}, options: any = { lean: true };
 
         criteria.isDeleted = false
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userIds = { $in: [new ObjectId(user._id)] }
 
         if (statusFilter) criteria.status = statusFilter
+
+        if (userFilter) criteria.userIds = { $in: [new ObjectId(userFilter)] }
 
         if (sortOrder) options.sort = { createdAt: sortOrder === 'asc' ? 1 : -1 }
 
