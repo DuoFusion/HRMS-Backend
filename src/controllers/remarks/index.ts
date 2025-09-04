@@ -65,12 +65,13 @@ export const get_all_remarks = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         let criteria: any = { isDeleted: false }, options: any = {};
-        const { page, limit, search, userFilter } = value;
+        const { page, limit, search, userFilter, startDate, endDate } = value;
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
 
         if (userFilter) criteria.userId = userFilter;
         if (search) criteria.note = { $regex: search, $options: "si" };
+        if (startDate && endDate) criteria.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
 
         let populate = [
             { path: "userId", select: "fullName profilePhoto" },
