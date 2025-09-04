@@ -115,3 +115,8 @@ export const INVOICE_STATUS = {
     PAID: 'paid',
     CANCELLED: 'cancelled'
 }
+
+export const REMARK_TYPE = {
+    AUTO: "auto",
+    MANUAL: "manual"
+}

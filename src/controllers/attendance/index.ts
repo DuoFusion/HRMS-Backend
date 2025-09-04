@@ -1,5 +1,5 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
-import { apiResponse, ATTENDANCE_STATUS, ROLES } from "../../common";
+import { apiResponse, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
@@ -55,6 +55,7 @@ export const punch_in = async (req, res) => {
             try {
                 const remarkData = {
                     note: latePunchInRemark,
+                    type: REMARK_TYPE.AUTO,
                     userId: new ObjectId(user._id),
                     isDeleted: false
                 };

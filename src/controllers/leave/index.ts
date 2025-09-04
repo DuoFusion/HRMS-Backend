@@ -66,7 +66,7 @@ export const get_all_leaves = async (req, res) => {
         const { error, value } = getAllLeavesSchema.validate(req.query);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, userFilter, typeFilter, statusFilter, startDateFilter, endDateFilter, activeFilter } = value;
+        let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, userFilter, typeFilter, statusFilter, startDate, endDate, activeFilter } = value;
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
@@ -74,7 +74,7 @@ export const get_all_leaves = async (req, res) => {
         if (userFilter) criteria.userId = userFilter;
         if (typeFilter) criteria.type = typeFilter;
         if (statusFilter) criteria.status = statusFilter;
-        if (startDateFilter && endDateFilter) criteria.startDate = { $gte: new Date(startDateFilter), $lte: new Date(endDateFilter) }
+        if (startDate && endDate) criteria.startDate = { $gte: new Date(startDate), $lte: new Date(endDate) }
         if (activeFilter === true) criteria.isBlocked = true
         if (activeFilter === false) criteria.isBlocked = false
         if (search) {

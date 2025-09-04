@@ -1,5 +1,5 @@
 import { remarkModel } from "../../database";
-import { apiResponse, ROLES } from "../../common";
+import { apiResponse, REMARK_TYPE, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting } from "../../helper";
 import { addRemarkSchema, updateRemarkSchema, deleteRemarkSchema, getAllRemarksSchema, getRemarkByIdSchema } from "../../validation";
 
@@ -13,7 +13,7 @@ export const add_remark = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
-
+        value.type = REMARK_TYPE.MANUAL;
         const response = await createData(remarkModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
 
