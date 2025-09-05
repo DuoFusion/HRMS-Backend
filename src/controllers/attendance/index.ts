@@ -1,6 +1,6 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData } from "../../helper";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -80,7 +80,7 @@ export const punch_in = async (req, res) => {
 
         const attendanceDate = new Date();
         attendanceDate.setHours(0, 0, 0, 0);
-
+        console.log("attendanceDate => ",attendanceDate);
         let response;
         if (existingAttendance) {
             // Do NOT update lateMinutes or remarks on subsequent punch-ins
@@ -753,106 +753,177 @@ export const break_out = async (req, res) => {
 
 export const manual_punch_out = async (req, res) => {
     reqInfo(req);
-    let { user } = req.headers;
+    const { user } = req.headers;
     try {
         const { error, value } = manualPunchOutSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        // Create IST timezone boundary using setHours for database query
-        const queryStart = new Date();
-        queryStart.setHours(0, 0, 0, 0);
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: queryStart }, isDeleted: false }, {}, { sort: { date: -1 } });
-        if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found for today", {}, {}));
+        const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: todayStart }, isDeleted: false }, {}, { sort: { date: -1 } });
+        if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found", {}, {}));
+        // Helper: parse a "hh:mm AM/PM" or "HH:MM" string as IST on the given attendance date and return UTC Date
+        const parseIstTimeOnAttendanceDate = (attendanceDateUtc: Date, timeStr?: string | null): Date | null => {
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const trimmed = timeStr.trim();
+            // Accept "hh:mm AM/PM" or "HH:MM" (24-hour)
+            const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            const match24 = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+            let hours: number, minutes: number;
+            if (match12) {
+                hours = parseInt(match12[1], 10);
+                minutes = parseInt(match12[2], 10);
+                const period = match12[3].toUpperCase();
+                if (period === 'PM' && hours < 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+            } else if (match24) {
+                hours = parseInt(match24[1], 10);
+                minutes = parseInt(match24[2], 10);
+            } else {
+                return null;
+            }
+            if (Number.isNaN(hours) || Number.isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
-        let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
-        let hasSessions = sessions.length > 0;
-        let openSessionIndex = hasSessions ? sessions.findIndex((s: any) => s && s.checkIn && !s.checkOut) : -1;
+            // Convert the attendance date to IST, set time-of-day there, then convert back to UTC
+            const istDate = utcToIst(attendanceDateUtc ? new Date(attendanceDateUtc) : new Date());
+            istDate.setHours(hours, minutes, 0, 0);
+            return istToUtc(istDate);
+        };
 
-        if (openSessionIndex === -1 && (!attendance.checkIn || attendance.checkOut)) return res.status(400).json(new apiResponse(400, "No open sessions to punch out", {}, {}));
+        // 2) Find open session (supports both sessions array and legacy checkIn/checkOut)
+        let sessions = Array.isArray(attendance.sessions) ? [...attendance.sessions] : [];
+        let openSessionIndex = sessions.findIndex((s: any) => s && s.checkIn && !s.checkOut);
+        let isLegacyOpen = false;
 
-        let punchOutTime: Date;
+        if (openSessionIndex === -1) {
+            // check last session (maybe last session is open)
+            if (sessions.length > 0) {
+                const lastIdx = sessions.length - 1;
+                const lastSession = sessions[lastIdx];
+                if (lastSession && lastSession.checkIn && !lastSession.checkOut) {
+                    openSessionIndex = lastIdx;
+                }
+            }
+        }
+
+        if (openSessionIndex === -1) {
+            // fallback to legacy fields
+            if (attendance.checkIn && !attendance.checkOut) {
+                isLegacyOpen = true;
+            }
+        }
+
+        if (openSessionIndex === -1 && !isLegacyOpen) {
+            return res.status(400).json(new apiResponse(400, "No open sessions to punch out", {}, {}));
+        }
+
+        // 3) Build punchOutTime (UTC). If customTime provided, interpret it as IST on attendance.date
+        const attendanceDateUtc = attendance.date ? new Date(attendance.date) : new Date();
+        let punchOutTimeUtc: Date;
         if (value.customTime) {
-            const timeStr = value.customTime;
-            const [timePart, period] = timeStr.split(' ');
-            const [hours, minutes] = timePart.split(':').map(Number);
-
-            let hour24 = hours;
-            if (period === 'PM' && hours !== 12) hour24 = hours + 12;
-            if (period === 'AM' && hours === 12) hour24 = 0;
-
-            punchOutTime = new Date(queryStart);
-            punchOutTime.setHours(hour24, minutes, 0, 0);
-        }
-
-        let checkInTime: Date;
-        if (openSessionIndex >= 0) {
-            checkInTime = new Date(sessions[openSessionIndex].checkIn);
+            const parsed = parseIstTimeOnAttendanceDate(attendanceDateUtc, value.customTime);
+            if (!parsed) return res.status(400).json(new apiResponse(400, "Invalid customTime format. Use 'hh:mm AM'/'hh:mm PM' or 'HH:MM'", {}, {}));
+            punchOutTimeUtc = parsed;
         } else {
-            checkInTime = new Date(attendance.checkIn);
+            punchOutTimeUtc = new Date(); // now (UTC)
         }
 
-        if (punchOutTime <= checkInTime) {
+        // 4) Get checkIn time for comparison
+        const checkInTimeUtc = openSessionIndex >= 0 ? new Date(sessions[openSessionIndex].checkIn) : new Date(attendance.checkIn);
+        if (punchOutTimeUtc <= checkInTimeUtc) {
             return res.status(400).json(new apiResponse(400, "Punch-out time must be after check-in time", {}, {}));
         }
 
+        // 5) Close any open breaks in that session and set session.checkOut (or attendance.checkOut for legacy)
         if (openSessionIndex >= 0) {
             const session = sessions[openSessionIndex];
             if (Array.isArray(session.breaks)) {
                 for (const b of session.breaks) {
                     if (b.breakIn && !b.breakOut) {
-                        b.breakOut = punchOutTime;
+                        b.breakOut = punchOutTimeUtc;
                     }
                 }
             }
-            sessions[openSessionIndex].checkOut = punchOutTime;
+            sessions[openSessionIndex].checkOut = punchOutTimeUtc;
         } else {
-            attendance.checkOut = punchOutTime;
+            // legacy
+            attendance.checkOut = punchOutTimeUtc;
         }
 
-        const computeTotals = async (att: any) => {
+        // 6) Totals calculation helper — uses minute-level accuracy
+        const computeTotals = async (attObj: any, companyId: any) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
-            const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
+            const allSessions = Array.isArray(attObj.sessions) && attObj.sessions.length > 0
+                ? attObj.sessions
+                : (attObj.checkIn && attObj.checkOut ? [{ checkIn: attObj.checkIn, checkOut: attObj.checkOut, breaks: [] }] : []);
+
             for (const session of allSessions) {
                 if (session.checkIn && session.checkOut) {
-                    totalMinutes += getHoursDifference(session.checkIn, session.checkOut) * 60;
+                    totalMinutes += getMinutesDifference(new Date(session.checkIn), new Date(session.checkOut));
                     if (Array.isArray(session.breaks)) {
                         for (const b of session.breaks) {
                             if (b.breakIn && b.breakOut) {
-                                breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                                breakMinutes += getMinutesDifference(new Date(b.breakIn), new Date(b.breakOut));
+                            } else if (b.breakIn && !b.breakOut) {
+                                // if breakOut left open, assume it ended at session.checkOut
+                                breakMinutes += getMinutesDifference(new Date(b.breakIn), new Date(session.checkOut));
                             }
                         }
                     }
                 }
             }
-            const totalWorkingHours = totalMinutes / 60;
-            const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
 
-            // Get company's totalWorkingHours setting
-            let companyTotalWorkingHours = 9; // default fallback
-            if (user?.companyId) {
-                const company = await getFirstMatch(companyModel, { _id: new ObjectId(user.companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
-                if (company?.totalWorkingHours) {
-                    companyTotalWorkingHours = company.totalWorkingHours;
-                }
+            const totalWorkingHours = Math.round((totalMinutes / 60) * 100) / 100; // 2 decimals
+            const productiveHours = Math.round(Math.max(0, totalWorkingHours - (breakMinutes / 60)) * 100) / 100; // 2 decimals
+
+            // company standard working hours (fallback to 9)
+            let companyTotalWorkingHours = 9;
+            if (companyId) {
+                const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
+                if (company?.totalWorkingHours) companyTotalWorkingHours = Number(company.totalWorkingHours);
             }
 
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
-            const productionHours = Math.round(productiveHours * 100) / 100;
-            return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
+            const overtimeMinutes = Math.max(0, Math.round((totalWorkingHours - companyTotalWorkingHours) * 60));
+            const productionHours = productiveHours; // same as productiveHours (rounded)
+
+            return {
+                totalWorkingHours,
+                productiveHours,
+                overtimeMinutes,
+                productionHours,
+                breakMinutes
+            };
         };
 
-        const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions });
+        // 7) Get user's companyId (for company working hours)
+        const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { companyId: 1 }, {});
+        const companyId = dbUser?.companyId;
+
+        // 8) Prepare attendance object for totals computation
+        const attForCompute = {
+            ...((attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance),
+            sessions
+        };
+
+        const totals = await computeTotals(attForCompute, companyId);
+
+        // 9) Build update object (do NOT touch lateMinutes)
+        const updatedRemarks = value.remarks
+            ? (attendance.remarks ? `${attendance.remarks}; ${value.remarks}` : value.remarks)
+            : attendance.remarks;
+
         const updateDataObj: any = {
-            checkOut: attendance.checkOut || punchOutTime,
+            checkOut: attendance.checkOut || punchOutTimeUtc,
             sessions,
             totalWorkingHours: totals.totalWorkingHours,
             productiveHours: totals.productiveHours,
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
-            remarks: value.remarks || attendance.remarks
+            remarks: updatedRemarks
+            // note: we intentionally DO NOT modify `lateMinutes`
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
@@ -865,8 +936,8 @@ export const manual_punch_out = async (req, res) => {
         };
 
         return res.status(200).json(new apiResponse(200, "Manual punch-out successful", formattedResponse, {}));
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, err));
     }
 };
