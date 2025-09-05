@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { apiResponse, ROLES } from '../../common';
 import { countData, createData, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
-import { roleModel, userModel } from '../../database';
+import { roleModel, seatModel, userModel } from '../../database';
 import { addUserSchema, deleteUserSchema, editUserSchema, getAllUserSchema, getUserSchema } from '../../validation';
 const ObjectId = require("mongoose").Types.ObjectId
 
@@ -167,8 +167,11 @@ export const get_user_by_id = async (req, res) => {
         const { error, value } = getUserSchema.validate(req.params)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const response = await getFirstMatch(userModel, { _id: new ObjectId(value.id), isDeleted: false }, '-password', {})
+        let response = await getFirstMatch(userModel, { _id: new ObjectId(value.id), isDeleted: false }, '-password', {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
+        let seat = await getFirstMatch(seatModel, { userId: new ObjectId(value.id), isDeleted: false }, {}, {})
+        
+        if(seat) response.seatNumber = seat.seatNumber
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("User"), response, {}));
     } catch (error) {
         console.log(error)

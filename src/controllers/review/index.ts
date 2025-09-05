@@ -59,9 +59,14 @@ export const get_all_reviews = async (req, res) => {
         const { error, value } = getAllReviewSchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
-        let { page, limit, search } = value, criteria: any = {}, options: any = { lean: true };
+        let { page, limit, search, userFilter, startDate, endDate } = value, criteria: any = {}, options: any = { lean: true };
+
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
+
+        if (userFilter) criteria.userId = new ObjectId(userFilter)
+
+        if (startDate && endDate) criteria.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
 
         criteria.isDeleted = false;
         if (search) {

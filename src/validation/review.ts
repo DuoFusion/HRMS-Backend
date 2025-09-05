@@ -29,4 +29,7 @@ export const getAllReviewSchema = Joi.object().keys({
     page: Joi.number().integer().optional(),
     limit: Joi.number().integer().optional(),
     search: Joi.string().optional(),
+    userFilter: Joi.string().optional(),
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional(),
 });
