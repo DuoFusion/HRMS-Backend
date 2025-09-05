@@ -12,7 +12,6 @@ export const punch_in = async (req, res) => {
         const { error, value } = checkInSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        // Create IST timezone boundaries using setHours for database query
         const queryStart = new Date();
         queryStart.setHours(0, 0, 0, 0);
 
@@ -32,37 +31,43 @@ export const punch_in = async (req, res) => {
         const currentTime = new Date();
         let lateMinutes = 0;
         let status = "Present";
+        let finalRemarks = value.remarks || "";
 
         let grace = 10;
         const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { workingTime: 1, companyId: 1 }, {});
+
         if (dbUser?.companyId) {
             const company = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { lateMinutes: 1 }, {});
             const parsedGrace = Number(company?.lateMinutes);
-            if (!isNaN(parsedGrace)) {
-                grace = parsedGrace;
-            }
+            if (!isNaN(parsedGrace)) grace = parsedGrace;
         }
 
         const userStartStr: string | undefined = dbUser?.workingTime?.start;
-        lateMinutes = computeLateMinutesIst(currentTime, userStartStr, grace);
 
-        // Create late punch-in remark if applicable
         let latePunchInRemark = "";
-        if (lateMinutes > 0) {
-            latePunchInRemark = `Late punch-in: ${lateMinutes} minutes after expected start time (${userStartStr || 'Not set'})`;
+        if (!existingAttendance) {
+            lateMinutes = computeLateMinutesIst(currentTime, userStartStr, grace);
 
-            // Create a remark entry for late punch-in
-            try {
-                const remarkData = {
-                    note: latePunchInRemark,
-                    type: REMARK_TYPE.AUTO,
-                    userId: new ObjectId(user._id),
-                    isDeleted: false
-                };
-                await createData(remarkModel, remarkData);
-            } catch (remarkError) {
-                console.log("Failed to create late punch-in remark:", remarkError);
-                // Don't fail the punch-in if remark creation fails
+            if (lateMinutes > 0) {
+                latePunchInRemark = `Late punch-in: ${lateMinutes} minutes after expected start time (${userStartStr || 'Not set'})`;
+
+                try {
+                    const remarkData = {
+                        note: latePunchInRemark,
+                        type: REMARK_TYPE.AUTO,
+                        userId: new ObjectId(user._id),
+                        isDeleted: false
+                    };
+                    await createData(remarkModel, remarkData);
+                } catch (remarkError) {
+                    console.log("Failed to create late punch-in remark:", remarkError);
+                }
+            }
+
+            if (latePunchInRemark) {
+                finalRemarks = finalRemarks
+                    ? `${finalRemarks}; ${latePunchInRemark}`
+                    : latePunchInRemark;
             }
         }
 
@@ -76,50 +81,35 @@ export const punch_in = async (req, res) => {
         const attendanceDate = new Date();
         attendanceDate.setHours(0, 0, 0, 0);
 
-        let finalRemarks = value.remarks || "";
-        if (latePunchInRemark) {
-            finalRemarks = finalRemarks ? `${finalRemarks}; ${latePunchInRemark}` : latePunchInRemark;
-        }
-
-        const attendanceData: any = {
-            userId: new ObjectId(user._id),
-            date: attendanceDate,
-            status,
-            lateMinutes,
-            remarks: finalRemarks || null
-        };
-
         let response;
         if (existingAttendance) {
+            // Do NOT update lateMinutes or remarks on subsequent punch-ins
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
-            let existingFinalRemarks = value.remarks || existingAttendance.remarks || "";
-            if (latePunchInRemark) {
-                existingFinalRemarks = existingFinalRemarks ? `${existingFinalRemarks}; ${latePunchInRemark}` : latePunchInRemark;
-            }
 
-            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, {
-                userId: new ObjectId(user._id),
-                date: attendanceDate,
-                remarks: existingFinalRemarks || null,
-                status: existingAttendance.status,
-                lateMinutes: existingAttendance.lateMinutes,
-                checkIn: existingAttendance.checkIn || currentTime,
-                checkOut: null,
-                sessions
-            });
+            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions });
         } else {
             response = await createData(attendanceModel, {
-                ...attendanceData,
+                userId: new ObjectId(user._id),
+                date: attendanceDate,
+                status,
+                lateMinutes,
+                remarks: finalRemarks || null,
                 checkIn: currentTime,
                 checkOut: null,
                 sessions: [newSession]
             });
         }
 
-        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
+        if (!response) {
+            return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
+        }
 
-        const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
+        const baseResponse: any =
+            response && typeof (response as any).toObject === "function"
+                ? (response as any).toObject()
+                : response;
+
         const formattedResponse = {
             ...baseResponse,
             date: formatDateForResponseUtc(baseResponse.date)
