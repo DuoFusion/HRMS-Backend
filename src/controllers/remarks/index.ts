@@ -12,7 +12,7 @@ export const add_remark = async (req, res) => {
         const { error, value } = addRemarkSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) value.userId = new ObjectId(user._id)
         value.type = REMARK_TYPE.MANUAL;
         const response = await createData(remarkModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
