@@ -6,6 +6,6 @@ import { ROLES } from "../common";
 const router = Router();
 
 router.use(adminJWT);
-router.get('/', VALIDATE_ROLE([ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), dashboardController.get_dashboard);
+router.get('/', VALIDATE_ROLE([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), dashboardController.get_dashboard);
 
 export const boardRoutes = router;
