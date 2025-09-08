@@ -9,7 +9,7 @@ import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordSchema
 const ObjectId = require("mongoose").Types.ObjectId
 
 const generateToken = (userId: string, role: string) => {
-    return jwt.sign({ userId, role }, config.JWT_TOKEN_SECRET, { expiresIn: '24h' });
+    return jwt.sign({ userId, role }, config.JWT_TOKEN_SECRET, { expiresIn: '4h' });
 };
 
 export const register = async (req, res) => {
