@@ -308,66 +308,170 @@ export const getAttendanceById = async (req, res) => {
     }
 };
 
-export const updateAttendance = async (req, res) => {
+export const add_attendance = async (req, res) => {
     reqInfo(req);
+    const { userId, date, status, remarks, checkIn, checkOut, sessions } = req.body;
+
     try {
-        const { error, value } = updateAttendanceSchema.validate(req.body);
-        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+        if (!userId || !date) {
+            return res.status(400).json(new apiResponse(400, "userId and date are required", {}, {}));
+        }
 
-        const { id } = req.params;
+        const attendanceDate = new Date(date);
+        attendanceDate.setHours(0, 0, 0, 0);
 
-        const existingAttendance = await getFirstMatch(attendanceModel, { _id: new ObjectId(id), isDeleted: false }, {}, {});
+        const existing = await attendanceModel.findOne({ userId, date: attendanceDate, isDeleted: false });
+        if (existing) {
+            return res.status(400).json(new apiResponse(400, "Attendance already exists for this date", {}, {}));
+        }
 
-        if (!existingAttendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}))
-        const dbUser = await getFirstMatch(userModel, { _id: new ObjectId(existingAttendance.userId), isDeleted: false }, { companyId: 1 }, {});
+        let finalSessions: any[] = [];
 
-        let updateData = { ...value };
+        if (checkIn && checkOut) {
+            finalSessions.push({
+                checkIn: new Date(checkIn),
+                checkOut: new Date(checkOut),
+                breaks: []
+            });
+        }
 
-        if (value.checkIn || value.checkOut) {
-            const checkIn = value.checkIn || existingAttendance.checkIn;
-            const checkOut = value.checkOut || existingAttendance.checkOut;
+        if (Array.isArray(sessions) && sessions.length > 0) {
+            finalSessions = sessions.map((s: any) => ({
+                checkIn: s.checkIn ? new Date(s.checkIn) : null,
+                checkOut: s.checkOut ? new Date(s.checkOut) : null,
+                breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
+                    breakIn: b.breakIn ? new Date(b.breakIn) : null,
+                    breakOut: b.breakOut ? new Date(b.breakOut) : null
+                })) : []
+            }));
+        }
 
-            if (checkIn && checkOut) {
-                const totalWorkingHours = getHoursDifference(checkIn, checkOut);
-                const productiveHours = Math.max(0, totalWorkingHours - ((value.breakMinutes || existingAttendance.breakMinutes) / 60));
-
-                // Get company's totalWorkingHours setting
-                let companyTotalWorkingHours = 9; // default fallback
-                if (dbUser?.companyId) {
-                    const company = await getFirstMatch(companyModel, { _id: new ObjectId(dbUser.companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
-                    if (company?.totalWorkingHours) {
-                        companyTotalWorkingHours = company.totalWorkingHours;
-                    }
-                }
-
-                const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
-                const productionHours = Math.round(productiveHours * 100) / 100;
-
-                updateData = {
-                    ...updateData,
-                    totalWorkingHours,
-                    productiveHours,
-                    overtimeMinutes,
-                    productionHours
-                };
+        let attendanceCheckIn: Date | null = null;
+        let attendanceCheckOut: Date | null = null;
+        if (finalSessions.length > 0) {
+            const validSessions = finalSessions.filter(s => s.checkIn);
+            if (validSessions.length > 0) {
+                attendanceCheckIn = validSessions[0].checkIn;
+                attendanceCheckOut = validSessions[validSessions.length - 1].checkOut || null;
             }
         }
 
-        const response = await updateData(attendanceModel, { _id: new ObjectId(id) }, updateData);
+        let totalMinutes = 0, breakMinutes = 0;
+        for (const s of finalSessions) {
+            if (s.checkIn && s.checkOut) {
+                totalMinutes += getHoursDifference(s.checkIn, s.checkOut) * 60;
+                if (Array.isArray(s.breaks)) {
+                    for (const b of s.breaks) {
+                        if (b.breakIn && b.breakOut) {
+                            breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                        }
+                    }
+                }
+            }
+        }
 
-        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
+        const totalWorkingHours = totalMinutes / 60;
+        const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
 
-        const formattedResponse = {
-            ...response.toObject(),
-            checkIn: formatTimeForResponseUtc(response.checkIn),
-            checkOut: formatTimeForResponseUtc(response.checkOut),
-            date: formatDateForResponseUtc(response.date)
-        };
+        const attendance = await attendanceModel.create({
+            userId,
+            date: attendanceDate,
+            status: status || ATTENDANCE_STATUS.PRESENT,
+            remarks: remarks || "Manually added",
+            checkIn: attendanceCheckIn,
+            checkOut: attendanceCheckOut,
+            sessions: finalSessions,
+            totalWorkingHours,
+            productiveHours,
+            productionHours: Math.round(productiveHours * 100) / 100,
+            breakMinutes,
+            overtimeMinutes: Math.max(0, (totalWorkingHours - 9) * 60) // default 9 hrs
+        });
 
-        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("attendance"), formattedResponse, {}));
+        return res.status(200).json(new apiResponse(200, "Manual attendance added successfully", attendance, {}));
     } catch (error) {
         console.log(error);
-        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+        return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
+    }
+};
+
+export const edit_attendance_by_id = async (req, res) => {
+    reqInfo(req);
+    const { attendanceId, status, remarks, checkIn, checkOut, sessions } = req.body;
+
+    try {
+        if (!attendanceId) {
+            return res.status(400).json(new apiResponse(400, "attendanceId is required", {}, {}));
+        }   
+
+        const attendance = await attendanceModel.findById(attendanceId);
+        if (!attendance || attendance.isDeleted) {
+            return res.status(404).json(new apiResponse(404, "Attendance not found", {}, {}));
+        }
+
+        // ✅ Update basic fields
+        if (status) attendance.status = status;
+        if (remarks) attendance.remarks = remarks;
+
+        // ✅ Option 1: Simple checkIn/checkOut overwrite
+        if (checkIn && checkOut) {
+            attendance.checkIn = new Date(checkIn);
+            attendance.checkOut = new Date(checkOut);
+            attendance.sessions = [{
+                checkIn: new Date(checkIn),
+                checkOut: new Date(checkOut),
+                breaks: []
+            }];
+        }
+
+        // ✅ Option 2: Advanced manual sessions update
+        if (Array.isArray(sessions) && sessions.length > 0) {
+            attendance.sessions = sessions.map((s: any) => ({
+                checkIn: s.checkIn ? new Date(s.checkIn) : null,
+                checkOut: s.checkOut ? new Date(s.checkOut) : null,
+                breaks: Array.isArray(s.breaks) ? s.breaks.map((b: any) => ({
+                    breakIn: b.breakIn ? new Date(b.breakIn) : null,
+                    breakOut: b.breakOut ? new Date(b.breakOut) : null
+                })) : []
+            }));
+
+            // Derive overall checkIn/checkOut from sessions
+            const validSessions = attendance.sessions.filter(s => s.checkIn);
+            if (validSessions.length > 0) {
+                attendance.checkIn = validSessions[0].checkIn;
+                attendance.checkOut = validSessions[validSessions.length - 1].checkOut || null;
+            }
+        }
+
+        // ✅ Recalculate totals like punch_out
+        let totalMinutes = 0, breakMinutes = 0;
+        for (const s of attendance.sessions) {
+            if (s.checkIn && s.checkOut) {
+                totalMinutes += getHoursDifference(s.checkIn, s.checkOut) * 60;
+                if (Array.isArray(s.breaks)) {
+                    for (const b of s.breaks) {
+                        if (b.breakIn && b.breakOut) {
+                            breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                        }
+                    }
+                }
+            }
+        }
+
+        const totalWorkingHours = totalMinutes / 60;
+        const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
+        attendance.totalWorkingHours = totalWorkingHours;
+        attendance.productiveHours = productiveHours;
+        attendance.productionHours = Math.round(productiveHours * 100) / 100;
+        attendance.breakMinutes = breakMinutes;
+        attendance.overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60); // default 9 hrs
+
+        await attendance.save();
+
+        return res.status(200).json(new apiResponse(200, "Manual attendance updated successfully", attendance, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
     }
 };
 
@@ -388,7 +492,6 @@ export const deleteAttendance = async (req, res) => {
     }
 };
 
-// Get only today's attendance for current user; return {} if not found
 export const get_today_attendance = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers;
