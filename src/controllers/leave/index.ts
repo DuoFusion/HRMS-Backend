@@ -15,7 +15,7 @@ export const add_leave = async (req, res) => {
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
         
         if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
-        if(value.status !== LEAVE_STATUS.PENDING) value.approvedBy = new ObjectId(user._id)
+        if(value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED ) value.approvedBy = new ObjectId(user._id)
         
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
@@ -32,14 +32,12 @@ export const update_leave = async (req, res) => {
     try {
         const { error, value } = updateLeaveSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
-        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
-        if(value.status !== LEAVE_STATUS.PENDING) value.approvedBy = new ObjectId(user._id)
-
+        
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(value.leaveId), isDeleted: false }, {}, {});
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));
-
-        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) value.approvedBy = new ObjectId(user._id)
+        
+        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+        if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, value, {});
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('Leave'), response, {}));
