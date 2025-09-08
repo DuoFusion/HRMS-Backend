@@ -55,7 +55,7 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 
 		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
 
-		const holidays = await holidayModel.find({ date: { $gte: todayStart }, isDeleted: false }).lean()
+		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lte: yesterdayEnd }, isDeleted: false }).lean()
 
 		const isHoliday = holidays.length < 1
 
@@ -68,7 +68,8 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 
 			const leave = await leaveModel.findOne({
 				userId: user._id,
-				startDate: { $lt: todayStart },
+				startDate: { $lte: yesterdayStart },
+    			endDate: { $gte: yesterdayStart },
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
