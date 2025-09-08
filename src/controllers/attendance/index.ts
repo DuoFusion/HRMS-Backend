@@ -407,18 +407,10 @@ export const get_today_attendance = async (req, res) => {
 
         const todayEnd = new Date();
         todayEnd.setHours(23, 59, 59, 999);
-        const getIstMidnightUtc = (date: Date = new Date()): Date => {
-            // Create a copy
-            const d = new Date(date);
-            // Convert to IST offset
-            d.setUTCHours(0, 0, 0, 0); // Reset to UTC midnight
-            // IST offset is +5:30 => subtract 5.5 hours to get IST midnight in UTC
-            return new Date(d.getTime() - (5.5 * 60 * 60 * 1000));
-        };
 
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $gte: todayStart, $lt: todayEnd }, isDeleted: false }, {}, {});
 
-        const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: getIstMidnightUtc() }, isDeleted: false }, {}, { sort: { date: -1 } });
+        const lastAttendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: todayStart }, isDeleted: false }, {}, { sort: { date: -1 } });
 
         let lastPunchOut = false;
         if (lastAttendance && lastAttendance.status === ATTENDANCE_STATUS.PRESENT) {
