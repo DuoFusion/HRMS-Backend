@@ -69,8 +69,8 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 
 			const leave = await leaveModel.findOne({
 				userId: user._id,
-				startDate: { $lte: yesterdayStart },
-    			endDate: { $gte: yesterdayStart },
+				startDate: { $lte: yesterdayEnd }, 
+				endDate: { $gte: yesterdayStart }, 
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
