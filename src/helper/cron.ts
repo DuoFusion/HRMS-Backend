@@ -74,7 +74,7 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
-
+			console.log("leave => ",leave);
 			if (leave && leave.dayType === 'half') continue;
 
 			let status = ATTENDANCE_STATUS.ABSENT;
