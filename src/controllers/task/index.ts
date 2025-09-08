@@ -1,4 +1,4 @@
-import { taskModel } from "../../database";
+import { taskModel, userModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
 import { countData, createData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addTaskSchema, deleteTaskSchema, getAllTasksSchema, getTaskByIdSchema, updateTaskSchema } from "../../validation";
@@ -77,7 +77,17 @@ export const edit_task_by_id = async (req, res) => {
 
         const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, { timestamps });
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}))
-        return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('task'), response, {}))
+        
+        let populateModel = [
+            { path: 'userId', select: 'fullName email role profilePhoto' },
+            { path: 'projectId', select: 'name' },
+            { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
+            { path: 'comments.userId', select: 'fullName email role profilePhoto' },
+            { path: 'userIds', select: 'fullName email role profilePhoto' },
+        ]
+
+        let user = await findOneAndPopulate(userModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {}, populateModel);
+        return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('task'), user, {}))
     } catch (error) {
         console.error(error)
         return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error))
@@ -167,9 +177,11 @@ export const get_task_by_id = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
         let populateModel = [
-            { path: 'userId', select: 'fullName email role' },
+            { path: 'userId', select: 'fullName email role profilePhoto' },
             { path: 'projectId', select: 'name' },
-            { path: 'statusHistory.userId', select: 'fullName email role' }
+            { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
+            { path: 'comments.userId', select: 'fullName email role profilePhoto' },
+            { path: 'userIds', select: 'fullName email role profilePhoto' },
         ]
 
         const response = await findOneAndPopulate(taskModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {}, populateModel)
