@@ -56,8 +56,9 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
 
 		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lte: yesterdayEnd }, isDeleted: false }).lean()
-
+		console.log("holidays => ",holidays);
 		const isHoliday = holidays.length < 1
+		console.log("isHoliday => ",isHoliday);
 
 		for (const user of users) {
 			if (isHoliday) continue;
