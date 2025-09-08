@@ -1,5 +1,5 @@
 import { leaveModel } from "../../database";
-import { apiResponse, ROLES } from "../../common";
+import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting } from "../../helper";
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
 
@@ -13,7 +13,10 @@ export const add_leave = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
-
+        
+        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+        if(value.status !== LEAVE_STATUS.PENDING) value.approvedBy = new ObjectId(user._id)
+        
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess('Leave'), response, {}));
@@ -29,6 +32,9 @@ export const update_leave = async (req, res) => {
     try {
         const { error, value } = updateLeaveSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+        if(value.status !== LEAVE_STATUS.PENDING) value.approvedBy = new ObjectId(user._id)
 
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(value.leaveId), isDeleted: false }, {}, {});
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));

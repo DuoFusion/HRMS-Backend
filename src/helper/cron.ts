@@ -38,6 +38,12 @@ export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function (
 
 export const dailyAttendanceStatusJob = new CronJob('10 0 * * *', async function () {
 	try {
+		const today = new Date();
+		today.setDate(today.getDate())
+
+		const todayStart = new Date(today);
+		todayStart.setHours(0, 0, 0, 0);
+
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1)
 
@@ -46,10 +52,13 @@ export const dailyAttendanceStatusJob = new CronJob('10 0 * * *', async function
 
 		const yesterdayEnd = new Date(yesterday);
 		yesterdayEnd.setHours(23, 59, 59, 999);
-		
+
+		console.log("todayStart => ",todayStart);
+		console.log("yesterdayStart => ",yesterdayStart);
+		console.log("yesterdayEnd => ",yesterdayEnd);
 		const users = await userModel.find({ role: { $ne: ROLES.ADMIN }, isDeleted: false, isBlocked: false }).lean()
 		
-		const holidays = await holidayModel.find({ date: { $gte: yesterdayStart, $lt: yesterdayEnd }, isDeleted: false }).lean()
+		const holidays = await holidayModel.find({ date: { $lt: todayStart }, isDeleted: false }).lean()
 	
 		const isHoliday = holidays.length > 0
 		
@@ -62,8 +71,7 @@ export const dailyAttendanceStatusJob = new CronJob('10 0 * * *', async function
 
 			const leave = await leaveModel.findOne({
 				userId: user._id,
-				startDate: { $lte: yesterdayEnd },
-				endDate: { $gte: yesterdayStart },
+				startDate: { $lt: todayStart },
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
