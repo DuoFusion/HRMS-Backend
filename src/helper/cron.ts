@@ -74,15 +74,20 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 				status: LEAVE_STATUS.APPROVED,
 				isDeleted: false
 			})
-			console.log("leave => ",leave);
 			if (leave && leave.dayType === 'half') continue;
 
 			let status = ATTENDANCE_STATUS.ABSENT;
-			let remarks = 'Auto-marked absent - No attendance recorded'
 
-			if (leave && leave.dayType === 'full') {
-				status = ATTENDANCE_STATUS.LEAVE
-				remarks = `Auto-marked leave - ${leave.type} leave approved`
+			let remarks = 'Auto-marked absent - No attendance recorded';
+
+			if (leave) {
+			    if (leave.dayType === 'half') {
+			        status = ATTENDANCE_STATUS.HALF_DAY;
+			        remarks = `Auto-marked half-day leave - ${leave.type} leave approved`;
+			    } else if (leave.dayType === 'full') {
+			        status = ATTENDANCE_STATUS.LEAVE;
+			        remarks = `Auto-marked leave - ${leave.type} leave approved`;
+			    }
 			}
 
 			await attendanceModel.create({

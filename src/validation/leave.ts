@@ -8,7 +8,7 @@ export const addLeaveSchema = Joi.object().keys({
     type: Joi.string().valid(...Object.values(LEAVE_TYPE)).required(),
     reason: Joi.string().required(),
     count: Joi.number().required(),
-    status: Joi.string().valid(...Object.values(LEAVE_STATUS)),
+    status: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     dayType: Joi.string().valid(...Object.values(LEAVE_DAY_TYPE)).optional(),
 });
 
