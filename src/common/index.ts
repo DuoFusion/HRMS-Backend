@@ -21,10 +21,11 @@ export const userStatus = {
 }
 
 export const ROLES = {
+    SUPER_ADMIN: 'super-admin',
     ADMIN: 'admin',
     PROJECT_MANAGER: 'project-manager',
     HR: 'hr',
-    EMPLOYEE: 'employee'
+    EMPLOYEE: 'employee',
 }
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit OTP
