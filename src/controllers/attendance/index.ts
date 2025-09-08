@@ -80,17 +80,9 @@ export const punch_in = async (req, res) => {
 
         const attendanceDate = new Date();
         attendanceDate.setHours(0, 0, 0, 0);
-        const getIstMidnightUtc = (date: Date = new Date()): Date => {
-            // Create a copy
-            const d = new Date(date);
-            // Convert to IST offset
-            d.setUTCHours(0, 0, 0, 0); // Reset to UTC midnight
-            // IST offset is +5:30 => subtract 5.5 hours to get IST midnight in UTC
-            return new Date(d.getTime() - (5.5 * 60 * 60 * 1000));
-        };
+
         let response;
         if (existingAttendance) {
-            // Do NOT update lateMinutes or remarks on subsequent punch-ins
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
 
@@ -98,7 +90,7 @@ export const punch_in = async (req, res) => {
         } else {
             response = await createData(attendanceModel, {
                 userId: new ObjectId(user._id),
-                date: getIstMidnightUtc(),
+                date: attendanceDate,
                 status,
                 lateMinutes,
                 remarks: finalRemarks || null,
