@@ -12,6 +12,8 @@ const CompanySchema = new mongoose.Schema({
         start: { type: String, },
         end: { type: String }
     },
+    gst: { type: Boolean, default: false },
+    gstNumber: { type: String, default: null },
     lateMinutes: { type: Number },
     companyHours: { type: Number },
     totalWorkingHours: { type: Number, default: 9 },

@@ -228,14 +228,14 @@ export const get_all_attendance = async (req, res) => {
 
         criteria.isDeleted = false
 
-        options.sort = { date: -1, createdAt: -1 }
+        options.sort = { date: -1 }
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
-        if (dateFilter) options.sort = dateFilter === "asc" ? { createdAt: 1 } : { createdAt: -1 }
-
+        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+        
         if (startDate && endDate) criteria.createdAt = { $gte: startDate, $lte: endDate }
 
         if (statusFilter) criteria.status = statusFilter
@@ -400,20 +400,14 @@ export const edit_attendance_by_id = async (req, res) => {
     const { attendanceId, status, remarks, checkIn, checkOut, sessions } = req.body;
 
     try {
-        if (!attendanceId) {
-            return res.status(400).json(new apiResponse(400, "attendanceId is required", {}, {}));
-        }   
+        if (!attendanceId) return res.status(400).json(new apiResponse(400, "attendanceId is required", {}, {}));
 
         const attendance = await attendanceModel.findById(attendanceId);
-        if (!attendance || attendance.isDeleted) {
-            return res.status(404).json(new apiResponse(404, "Attendance not found", {}, {}));
-        }
+        if (!attendance || attendance.isDeleted) return res.status(404).json(new apiResponse(404, "Attendance not found", {}, {}));
 
-        // ✅ Update basic fields
         if (status) attendance.status = status;
         if (remarks) attendance.remarks = remarks;
 
-        // ✅ Option 1: Simple checkIn/checkOut overwrite
         if (checkIn && checkOut) {
             attendance.checkIn = new Date(checkIn);
             attendance.checkOut = new Date(checkOut);
@@ -424,7 +418,6 @@ export const edit_attendance_by_id = async (req, res) => {
             }];
         }
 
-        // ✅ Option 2: Advanced manual sessions update
         if (Array.isArray(sessions) && sessions.length > 0) {
             attendance.sessions = sessions.map((s: any) => ({
                 checkIn: s.checkIn ? new Date(s.checkIn) : null,
@@ -435,7 +428,6 @@ export const edit_attendance_by_id = async (req, res) => {
                 })) : []
             }));
 
-            // Derive overall checkIn/checkOut from sessions
             const validSessions = attendance.sessions.filter(s => s.checkIn);
             if (validSessions.length > 0) {
                 attendance.checkIn = validSessions[0].checkIn;
@@ -443,7 +435,6 @@ export const edit_attendance_by_id = async (req, res) => {
             }
         }
 
-        // ✅ Recalculate totals like punch_out
         let totalMinutes = 0, breakMinutes = 0;
         for (const s of attendance.sessions) {
             if (s.checkIn && s.checkOut) {
@@ -464,7 +455,7 @@ export const edit_attendance_by_id = async (req, res) => {
         attendance.productiveHours = productiveHours;
         attendance.productionHours = Math.round(productiveHours * 100) / 100;
         attendance.breakMinutes = breakMinutes;
-        attendance.overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60); // default 9 hrs
+        attendance.overtimeMinutes = Math.max(0, (totalWorkingHours - 9) * 60)
 
         await attendance.save();
 
