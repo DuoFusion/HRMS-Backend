@@ -86,7 +86,7 @@ export const edit_task_by_id = async (req, res) => {
             { path: 'userIds', select: 'fullName email role profilePhoto' },
         ]
 
-        let user = await findOneAndPopulate(userModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {}, populateModel);
+        let user = await findOneAndPopulate(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, {}, {}, populateModel);
         return res.status(202).json(new apiResponse(202, responseMessage?.getDataSuccess('task'), user, {}))
     } catch (error) {
         console.error(error)
