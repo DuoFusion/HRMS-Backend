@@ -85,7 +85,7 @@ export const punch_in = async (req, res) => {
         if (existingAttendance) {
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
-            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions,  $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN } } });
+            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions, currentStatus: ATTENDANCE_HISTORY_STATUS.PUNCH_IN, $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN } } });
         } else {
             response = await createData(attendanceModel, {
                 userId: new ObjectId(user._id),
@@ -95,6 +95,7 @@ export const punch_in = async (req, res) => {
                 remarks: finalRemarks || null,
                 checkIn: currentTime,
                 checkOut: null,
+                currentStatus: ATTENDANCE_HISTORY_STATUS.PUNCH_IN,
                 history: [{ status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN }],
                 sessions: [newSession]
             });
@@ -193,6 +194,7 @@ export const punch_out = async (req, res) => {
         const updateDataObj: any = {
             checkOut: attendance.checkOut || currentTime,
             sessions,
+            currentStatus: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT,
             totalWorkingHours: totals.totalWorkingHours,
             productiveHours: totals.productiveHours,
             overtimeMinutes: totals.overtimeMinutes,
@@ -758,7 +760,7 @@ export const break_in = async (req, res) => {
         session.breaks = Array.isArray(session.breaks) ? session.breaks : [];
         session.breaks.push({ breakIn: now, breakOut: null });
         history.push({ status: ATTENDANCE_HISTORY_STATUS.BREAK_IN })
-        const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, { history, sessions });
+        const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, { history, sessions, currentStatus: ATTENDANCE_HISTORY_STATUS.BREAK_IN });
         return res.status(200).json(new apiResponse(200, "Break started", updated, {}));
     } catch (error) {
         console.log(error);
@@ -836,6 +838,7 @@ export const break_out = async (req, res) => {
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
+            currentStatus: ATTENDANCE_HISTORY_STATUS.BREAK_OUT,
             $push: { history: { status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT } }
         });
 

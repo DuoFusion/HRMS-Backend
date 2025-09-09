@@ -1,4 +1,4 @@
-import { invoiceModel } from "../../database";
+import { attendanceModel, companyModel, holidayModel, invoiceModel, leaveModel, userModel } from "../../database";
 import { apiResponse } from "../../common";
 import { countData, createData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { createInvoiceSchema, deleteInvoiceSchema, getAllInvoicesSchema, updateInvoiceSchema } from "../../validation";
@@ -157,3 +157,89 @@ export const get_invoice = async (req, res) => {
 	}
 
 }
+
+// export const createMonthlyInvoice = async (req, res) => {
+// 	try {
+// 	  const { userId, month, year, bonus = 0, deductions = 0 } = req.body;
+  
+// 	  const user = await userModel.findById(userId);
+// 	  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+  
+// 	  const company = await companyModel.findById(user.companyId);
+// 	  if (!company) return res.status(404).json({ success: false, message: "Company not found" });
+  
+// 	  // Month start and end date
+// 	  const startDate = new Date(year, month - 1, 1);
+// 	  const endDate = new Date(year, month, 0);
+  
+// 	  // Attendance
+// 	  const attendance = await attendanceModel.find({
+// 		userId: ObjectId(userId),
+// 		date: { $gte: startDate, $lte: endDate },
+// 	  });
+  
+// 	  const presentDays = attendance.filter(a => a.status === "PRESENT").length;
+// 	  const overtimeMinutes = attendance.reduce((sum, a) => sum + (a.overtimeMinutes || 0), 0);
+  
+// 	  // Leave
+// 	  const leaves = await leaveModel.find({
+// 		userId: ObjectId(userId),
+// 		status: "APPROVED",
+// 		startDate: { $lte: endDate },
+// 		endDate: { $gte: startDate },
+// 	  });
+// 	  const leaveDays = leaves.reduce((sum, l) => sum + (l.count || 0), 0);
+  
+// 	  // Holidays
+// 	  const holidays = await holidayModel.find({
+// 		date: { $gte: startDate, $lte: endDate },
+// 		isBlocked: false,
+// 	  });
+  
+// 	  const workingDays = Math.round(((endDate) - startDate) / (1000 * 60 * 60 * 24)) + 1;
+// 	  const baseSalary = user.salary || 0;
+// 	  const overtimePay = (overtimeMinutes / 60) * (baseSalary / 30 / 8); // per hour
+  
+// 	  let netPay = baseSalary + overtimePay + bonus - deductions;
+  
+// 	  let gstPercentage = 0;
+// 	  let gstAmount = 0;
+// 	  if (company.gst) {
+// 		gstPercentage = 18; // Example 18%
+// 		gstAmount = (netPay * gstPercentage) / 100;
+// 		netPay += gstAmount;
+// 	  }
+  
+// 	  const invoiceNumber = `INV-${year}${month}-${Date.now()}`;
+  
+// 	  const invoice = await invoiceModel.create({
+// 		invoiceNumber,
+// 		userId,
+// 		companyId: company._id,
+// 		month,
+// 		year,
+// 		totalWorkingDays: workingDays,
+// 		totalPresentDays: presentDays,
+// 		totalLeaveDays: leaveDays,
+// 		totalHolidays: holidays.length,
+// 		totalOvertimeMinutes: overtimeMinutes,
+// 		baseSalary,
+// 		overtimePay,
+// 		deductions,
+// 		bonus,
+// 		gstPercentage,
+// 		gstAmount,
+// 		netPay,
+// 	  });
+  
+// 	  // Generate PDF
+// 	  const filePath = await generatePDF(invoice, user, company);
+// 	  invoice.pdfUrl = filePath;
+// 	  await invoice.save();
+  
+// 	  return res.status(200).json({ success: true, invoice });
+// 	} catch (error) {
+// 	  console.error(error);
+// 	  return res.status(500).json({ success: false, message: "Server Error" });
+// 	}
+//   };

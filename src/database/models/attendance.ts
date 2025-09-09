@@ -15,7 +15,6 @@ const attendanceSchema: any = new mongoose.Schema({
     totalWorkingHours: { type: Number, default: 0 },
     productiveHours: { type: Number, default: 0 },
     remarks: { type: String, default: null },
-    isDeleted: { type: Boolean, default: false },
     sessions: [
         {
             checkIn: { type: Date, required: true },
@@ -28,12 +27,14 @@ const attendanceSchema: any = new mongoose.Schema({
             ]
         }
     ],
+    currentStatus: { type: String, default: null },
     history: [
         {
             status: { type: String, enum: Object.values(ATTENDANCE_HISTORY_STATUS), default: ATTENDANCE_HISTORY_STATUS.PUNCH_IN },
             timestamp: { type: Date, default: Date.now },
         },
     ],
+    isDeleted: { type: Boolean, default: false },
 }, { timestamps: true, versionKey: false })
 
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true })
