@@ -1,4 +1,4 @@
-import { ATTENDANCE_STATUS } from "../../common";
+import { ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS } from "../../common";
 
 const mongoose = require('mongoose')
 
@@ -27,7 +27,13 @@ const attendanceSchema: any = new mongoose.Schema({
                 }
             ]
         }
-    ]
+    ],
+    history: [
+        {
+            status: { type: String, enum: Object.values(ATTENDANCE_HISTORY_STATUS), default: ATTENDANCE_HISTORY_STATUS.PUNCH_IN },
+            timestamp: { type: Date, default: Date.now },
+        },
+    ],
 }, { timestamps: true, versionKey: false })
 
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true })

@@ -1,5 +1,5 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
-import { apiResponse, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
+import { apiResponse, ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
@@ -85,8 +85,7 @@ export const punch_in = async (req, res) => {
         if (existingAttendance) {
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
-
-            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions });
+            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions,  $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN } } });
         } else {
             response = await createData(attendanceModel, {
                 userId: new ObjectId(user._id),
@@ -96,6 +95,7 @@ export const punch_in = async (req, res) => {
                 remarks: finalRemarks || null,
                 checkIn: currentTime,
                 checkOut: null,
+                history: [{ status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN }],
                 sessions: [newSession]
             });
         }
@@ -198,7 +198,8 @@ export const punch_out = async (req, res) => {
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
-            remarks: value.remarks || attendance.remarks
+            remarks: value.remarks || attendance.remarks,
+            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT } }
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
@@ -235,7 +236,7 @@ export const get_all_attendance = async (req, res) => {
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
         if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
-        
+
         if (startDate && endDate) criteria.createdAt = { $gte: startDate, $lte: endDate }
 
         if (statusFilter) criteria.status = statusFilter
@@ -738,7 +739,7 @@ export const break_in = async (req, res) => {
         if (!attendance) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("attendance"), {}, {}));
 
         const now = new Date();
-        let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [];
+        let sessions = Array.isArray(attendance.sessions) ? attendance.sessions : [], history = [...attendance.history];
         if (sessions.length === 0) {
             sessions.push({ checkIn: now, checkOut: null, breaks: [] });
         }
@@ -756,8 +757,8 @@ export const break_in = async (req, res) => {
         }
         session.breaks = Array.isArray(session.breaks) ? session.breaks : [];
         session.breaks.push({ breakIn: now, breakOut: null });
-
-        const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, { sessions });
+        history.push({ status: ATTENDANCE_HISTORY_STATUS.BREAK_IN })
+        const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, { history, sessions });
         return res.status(200).json(new apiResponse(200, "Break started", updated, {}));
     } catch (error) {
         console.log(error);
@@ -834,7 +835,8 @@ export const break_out = async (req, res) => {
             productiveHours: totals.productiveHours,
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
-            breakMinutes: totals.breakMinutes
+            breakMinutes: totals.breakMinutes,
+            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT } }
         });
 
         return res.status(200).json(new apiResponse(200, "Break ended", updated, {}));

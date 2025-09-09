@@ -121,3 +121,10 @@ export const REMARK_TYPE = {
     AUTO: "auto",
     MANUAL: "manual"
 }
+
+export const ATTENDANCE_HISTORY_STATUS = {
+    PUNCH_IN: "punch-in",
+    PUNCH_OUT: "punch-out",
+    BREAK_IN: "break-in",
+    BREAK_OUT: "break-out",
+}
