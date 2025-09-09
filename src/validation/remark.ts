@@ -7,6 +7,7 @@ export const addRemarkSchema = Joi.object({
 
 export const updateRemarkSchema = Joi.object({
   remarkId: Joi.string().required(),
+  userId: Joi.string().optional(),
   note: Joi.string().optional(),
 });
 
