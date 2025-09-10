@@ -1,3 +1,5 @@
+import { COMPANY_GST_INVOICE_TYPE } from "../../common";
+
 const mongoose = require('mongoose');
 
 const CompanySchema = new mongoose.Schema({
@@ -12,8 +14,10 @@ const CompanySchema = new mongoose.Schema({
         start: { type: String, },
         end: { type: String }
     },
-    gst: { type: Boolean, default: false },
+    gstInvoiceType: { type: String, enum: Object.values(COMPANY_GST_INVOICE_TYPE), default: null },
     gstNumber: { type: String, default: null },
+    gstPercentage: { type: Number, default: null },
+    overTimePaid: { type: Boolean, default: false },
     lateMinutes: { type: Number },
     companyHours: { type: Number },
     totalWorkingHours: { type: Number, default: 9 },

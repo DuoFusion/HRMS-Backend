@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { COMPANY_GST_INVOICE_TYPE } from "../common";
 
 export const addCompanySchema = Joi.object().keys({
     name: Joi.string().required(),
@@ -8,6 +9,10 @@ export const addCompanySchema = Joi.object().keys({
     email: Joi.string().email().optional(),
     website: Joi.string().required(),
     logo: Joi.string().optional(),
+    gstInvoiceType: Joi.string().valid(...Object.values(COMPANY_GST_INVOICE_TYPE)).optional(),
+    gstNumber: Joi.string().optional(),
+    gstPercentage: Joi.number().optional(),
+    overTimePaid: Joi.boolean().optional(),
     workingHours: Joi.object({
         start: Joi.string().required(),
         end: Joi.string().required()
@@ -25,6 +30,10 @@ export const editCompanySchema = Joi.object().keys({
     phoneNumber: Joi.string().optional(),
     email: Joi.string().email().optional(),
     logo: Joi.string().optional(),
+    gstInvoiceType: Joi.string().valid(...Object.values(COMPANY_GST_INVOICE_TYPE)).optional(),
+    gstNumber: Joi.string().optional(),
+    gstPercentage: Joi.number().optional(),
+    overTimePaid: Joi.boolean().optional(),
     workingHours: Joi.object({
         start: Joi.string().optional(),
         end: Joi.string().optional()

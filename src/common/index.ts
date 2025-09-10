@@ -112,7 +112,6 @@ export const PROJECT_STATUS = {
 
 export const INVOICE_STATUS = {
     DRAFT: 'draft',
-    SENT: 'sent',
     PAID: 'paid',
     CANCELLED: 'cancelled'
 }
@@ -128,3 +127,8 @@ export const ATTENDANCE_HISTORY_STATUS = {
     BREAK_IN: "break-in",
     BREAK_OUT: "break-out",
 }
+
+export const COMPANY_GST_INVOICE_TYPE = {
+    INTRA_STATE: "INTRA_STATE",  // CGST + SGST (within same state)
+    INTER_STATE: "INTER_STATE",  // IGST (between states)
+};

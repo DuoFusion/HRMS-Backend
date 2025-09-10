@@ -71,34 +71,32 @@ export const update_invoice = async (req, res) => {
 	}
 };
 
-export const delete_invoice = async(req,res)=>{
+export const delete_invoice = async (req, res) => {
 	reqInfo(req)
-	try{
+	try {
 
 		// const {error,value} = 
 
-	}catch(error){
+	} catch (error) {
 		console.log(error);
-		return res.status(500).json(new apiResponse(500,responseMessage?.internalServerError,{},error));
-		
+		return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
 	}
 }
 
-export const delete_invoice_by_id = async(req,res)=>{
+export const delete_invoice_by_id = async (req, res) => {
 	reqInfo(req)
-	try{
-		const {error,value}= deleteInvoiceSchema.validate(req.params);
-		if(error) return res.status(501).json(new apiResponse(501,error?.details[0]?.message,{},{}));
+	try {
+		const { error, value } = deleteInvoiceSchema.validate(req.params);
+		if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-		const response = await updateData(invoiceModel,{_id: new ObjectId(value.id)},{isDeleted:true},{});
-		if(!response) return res.status(404).json(new apiResponse(404,responseMessage?.getDataNotFound('Invoice'),{},{}));
+		const response = await updateData(invoiceModel, { _id: new ObjectId(value.id) }, { isDeleted: true }, {});
+		if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Invoice'), {}, {}));
 
-		return res.status(200).json(new apiResponse(200,responseMessage?.deleteDataSuccess('Invoice'),response,{}));
+		return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess('Invoice'), response, {}));
 
-	}catch(error){
+	} catch (error) {
 		console.log(error);
-		return res.status(500).json(new apiResponse(500,responseMessage?.internalServerError,{},error));
-		
+		return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
 	}
 }
 
@@ -153,93 +151,116 @@ export const get_invoice = async (req, res) => {
 	} catch (error) {
 		console.log(error);
 		return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
-
 	}
-
 }
 
-// export const createMonthlyInvoice = async (req, res) => {
-// 	try {
-// 	  const { userId, month, year, bonus = 0, deductions = 0 } = req.body;
-  
-// 	  const user = await userModel.findById(userId);
-// 	  if (!user) return res.status(404).json({ success: false, message: "User not found" });
-  
-// 	  const company = await companyModel.findById(user.companyId);
-// 	  if (!company) return res.status(404).json({ success: false, message: "Company not found" });
-  
-// 	  // Month start and end date
-// 	  const startDate = new Date(year, month - 1, 1);
-// 	  const endDate = new Date(year, month, 0);
-  
-// 	  // Attendance
-// 	  const attendance = await attendanceModel.find({
-// 		userId: ObjectId(userId),
-// 		date: { $gte: startDate, $lte: endDate },
-// 	  });
-  
-// 	  const presentDays = attendance.filter(a => a.status === "PRESENT").length;
-// 	  const overtimeMinutes = attendance.reduce((sum, a) => sum + (a.overtimeMinutes || 0), 0);
-  
-// 	  // Leave
-// 	  const leaves = await leaveModel.find({
-// 		userId: ObjectId(userId),
-// 		status: "APPROVED",
-// 		startDate: { $lte: endDate },
-// 		endDate: { $gte: startDate },
-// 	  });
-// 	  const leaveDays = leaves.reduce((sum, l) => sum + (l.count || 0), 0);
-  
-// 	  // Holidays
-// 	  const holidays = await holidayModel.find({
-// 		date: { $gte: startDate, $lte: endDate },
-// 		isBlocked: false,
-// 	  });
-  
-// 	  const workingDays = Math.round(((endDate) - startDate) / (1000 * 60 * 60 * 24)) + 1;
-// 	  const baseSalary = user.salary || 0;
-// 	  const overtimePay = (overtimeMinutes / 60) * (baseSalary / 30 / 8); // per hour
-  
-// 	  let netPay = baseSalary + overtimePay + bonus - deductions;
-  
-// 	  let gstPercentage = 0;
-// 	  let gstAmount = 0;
-// 	  if (company.gst) {
-// 		gstPercentage = 18; // Example 18%
-// 		gstAmount = (netPay * gstPercentage) / 100;
-// 		netPay += gstAmount;
-// 	  }
-  
-// 	  const invoiceNumber = `INV-${year}${month}-${Date.now()}`;
-  
-// 	  const invoice = await invoiceModel.create({
-// 		invoiceNumber,
-// 		userId,
-// 		companyId: company._id,
-// 		month,
-// 		year,
-// 		totalWorkingDays: workingDays,
-// 		totalPresentDays: presentDays,
-// 		totalLeaveDays: leaveDays,
-// 		totalHolidays: holidays.length,
-// 		totalOvertimeMinutes: overtimeMinutes,
-// 		baseSalary,
-// 		overtimePay,
-// 		deductions,
-// 		bonus,
-// 		gstPercentage,
-// 		gstAmount,
-// 		netPay,
-// 	  });
-  
-// 	  // Generate PDF
-// 	  const filePath = await generatePDF(invoice, user, company);
-// 	  invoice.pdfUrl = filePath;
-// 	  await invoice.save();
-  
-// 	  return res.status(200).json({ success: true, invoice });
-// 	} catch (error) {
-// 	  console.error(error);
-// 	  return res.status(500).json({ success: false, message: "Server Error" });
-// 	}
-//   };
+export const createMonthlyInvoice = async (req, res) => {
+	reqInfo(req)
+	try {
+		const { userId, month, year, bonus = 0 } = req.body;
+
+		const user = await userModel.findOne({_id: new ObjectId(userId)});
+		if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
+
+		const company = await companyModel.findById(user.companyId);
+		if (!company) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Company"), {}, {}));
+
+		const monthNames = [
+			"january", "february", "march", "april", "may", "june",
+			"july", "august", "september", "october", "november", "december"
+		];
+
+		const monthIndex = monthNames.indexOf(month.toLowerCase());
+		const numericYear = Number(year);
+
+		if (monthIndex === -1 || isNaN(numericYear)) {
+			throw new Error("Invalid month or year");
+		}
+
+		const startDate = new Date(numericYear, monthIndex, 1);
+		const endDate = new Date(numericYear, monthIndex + 1, 0);
+
+		const attendance = await attendanceModel.find({
+			userId: new ObjectId(userId),
+			date: { $gte: startDate, $lte: endDate },
+		});
+
+		const presentDays = attendance.filter(a => a.status === "PRESENT").length;
+		const overtimeMinutes = attendance.reduce((sum, a) => sum + (a.overtimeMinutes || 0), 0);
+
+		const leaves = await leaveModel.find({
+			userId: new ObjectId(userId),
+			status: "APPROVED",
+			startDate: { $lte: endDate },
+			endDate: { $gte: startDate },
+		});
+
+		const leaveDays = leaves.reduce((sum, l) => sum + (l.count || 0), 0);
+
+		const holidays = await holidayModel.find({
+			date: { $gte: startDate, $lte: endDate },
+			isBlocked: false,
+		});
+
+		const workingDays = Math.round(((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) + 1;
+
+		const baseSalary = user.salary || 0;
+
+		// ✅ Overtime Pay
+		let overtimePay = 0;
+		if (overtimeMinutes > 0 && company.overTimePaid) {
+			overtimePay = (overtimeMinutes / 60) * (baseSalary / 30 / 8);
+		}
+
+		let netPay = baseSalary + overtimePay + bonus;
+
+		// ✅ GST Calculation
+		let gstPercentage = company.gstPercentage ? Number(company.gstPercentage) : 0;
+		let cgstAmount = 0, sgstAmount = 0, igstAmount = 0, totalGstAmount = 0;
+
+		if (company.gstInvoiceType && company.gstInvoiceType !== "NONE") {
+			if (company.gstInvoiceType === "INTRA_STATE") {
+				cgstAmount = (netPay * gstPercentage) / 200; // Half GST
+				sgstAmount = (netPay * gstPercentage) / 200;
+				totalGstAmount = cgstAmount + sgstAmount;
+			} else if (company.gstInvoiceType === "INTER_STATE") {
+				igstAmount = (netPay * gstPercentage) / 100;
+				totalGstAmount = igstAmount;
+			}
+			netPay += totalGstAmount;
+		}
+
+		const invoiceNumber = `INV-${year}${month}-${Date.now()}`;
+
+		const invoice = await invoiceModel.create({
+			invoiceNumber,
+			userId,
+			companyId: company._id,
+			startDate,
+			endDate,
+			month,
+			year,
+			totalWorkingDays: workingDays,
+			totalPresentDays: presentDays,
+			totalLeaveDays: leaveDays,
+			totalHolidays: holidays.length,
+			totalOvertimeMinutes: overtimeMinutes,
+			baseSalary,
+			overtimePay,
+			bonus,
+			gstType: company.gstInvoiceType,
+			gstPercentage,
+			cgstAmount,
+			sgstAmount,
+			igstAmount,
+			totalGstAmount,
+			netPay,
+		});
+
+		await invoice.save();
+		return res.status(200).json({ success: true, invoice });
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json({ success: false, message: "Server Error" });
+	}
+};
