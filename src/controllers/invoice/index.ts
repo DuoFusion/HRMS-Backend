@@ -13,7 +13,7 @@ export const create_invoice = async (req, res) => {
 		const user = await userModel.findOne({ _id: new ObjectId(userId) });
 		if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
 
-		const company = await companyModel.findById(user.companyId);
+		const company = await companyModel.findOne({ _id: new ObjectId(user.companyId) });
 		if (!company) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Company"), {}, {}));
 
 		const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
@@ -149,7 +149,7 @@ export const get_invoice = async (req, res) => {
 				{ client: { $regex: search, $options: "i" } },
 			];
 		}
-        options.sort = { createdAt: -1 }
+		options.sort = { createdAt: -1 }
 
 		if (userFilter) criteria.userId = new ObjectId(userFilter)
 
@@ -173,10 +173,10 @@ export const get_invoice = async (req, res) => {
 		};
 
 		return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Invoice"), {
-            invoice_data: response || [],
-            totalData: totalCount,
-            state: stateObj
-        }, {}));
+			invoice_data: response || [],
+			totalData: totalCount,
+			state: stateObj
+		}, {}));
 
 	} catch (error) {
 		console.log(error);
