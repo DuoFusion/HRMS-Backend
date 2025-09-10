@@ -1,5 +1,5 @@
 import { attendanceModel, companyModel, holidayModel, invoiceModel, leaveModel, userModel } from "../../database";
-import { apiResponse } from "../../common";
+import { apiResponse, ROLES } from "../../common";
 import { countData, createData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { createInvoiceSchema, deleteInvoiceSchema, getAllInvoicesSchema, updateInvoiceSchema } from "../../validation";
 import { getNextInvoiceNumber, computeInvoiceTotals } from "../../helper";
@@ -109,7 +109,7 @@ export const get_invoice = async (req, res) => {
 		if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
 		let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, typeFilter, activeFilter } = value;
-		if (user.role === 'EMPLOYEE') criteria.userId = new ObjectId(user._id);
+		if (user.role === ROLES.EMPLOYEE || user.role === ROLES.PROJECT_MANAGER) criteria.userId = new ObjectId(user._id);
 
 		if (typeFilter) criteria.type = typeFilter;
 		if (activeFilter === true) criteria.isBlocked = true
@@ -124,8 +124,8 @@ export const get_invoice = async (req, res) => {
 		}
 
 		let populate = [
-			{ path: "userId", select: "firstName lastName fullName email phoneNumber password displayPassword salary dob joiningDate role bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto isEmailVerified otp otpExpireTime isDeleted isBlocked" },
-			{ path: "companyId", select: "name ownerName address phoneNumber email website logo isDeleted isBlocked" }
+			{ path: "userId", select: "firstName lastName fullName email phoneNumber salary bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto isEmailVerified otp otpExpireTime isDeleted isBlocked" },
+			{ path: "companyId", select: "name ownerName address phoneNumber email logo" }
 		];
 
 		if (page && limit) {
@@ -159,7 +159,7 @@ export const createMonthlyInvoice = async (req, res) => {
 	try {
 		const { userId, month, year, bonus = 0 } = req.body;
 
-		const user = await userModel.findOne({_id: new ObjectId(userId)});
+		const user = await userModel.findOne({ _id: new ObjectId(userId) });
 		if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
 
 		const company = await companyModel.findById(user.companyId);
