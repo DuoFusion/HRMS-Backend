@@ -94,3 +94,7 @@ export const getAllUserSchema = Joi.object().keys({
     dateFilter: Joi.string().valid("asc", "desc").optional(),
     activeFilter: Joi.boolean().optional()
 });
+
+export const getUserListSchema = Joi.object().keys({
+    isAdminShow: Joi.boolean().optional(),
+});

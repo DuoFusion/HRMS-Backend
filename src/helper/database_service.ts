@@ -1,7 +1,7 @@
 export const updateData = async (modelName, criteria, dataToSet, options: any = {}) => {
     options.new = true;
     options.lean = true;
-    return modelName.findOneAndUpdate(criteria, dataToSet, options);
+    return modelName.findOneAndUpdate(criteria, { $set: dataToSet }, options);
 }
 
 export const getData = async (modelName, criteria, projection = {}, options: any = {}) => {
@@ -11,7 +11,7 @@ export const getData = async (modelName, criteria, projection = {}, options: any
 
 export const getDataWithSorting = async (modelName, criteria, projection = {}, options: any = {}) => {
     options.lean = true;
-    return modelName.find(criteria, projection, options).collation({locale: "en"});
+    return modelName.find(criteria, projection, options).collation({ locale: "en" });
 }
 
 export const getFirstMatch = async (modelName, criteria, projection = {}, options: any = {}) => {
@@ -42,7 +42,7 @@ export async function aggregateData(modelName, criteria) {
 }
 
 export async function aggregateDataWithSorting(modelName, criteria) {
-    return modelName.aggregate(criteria).collation({locale: "en"});
+    return modelName.aggregate(criteria).collation({ locale: "en" });
 }
 
 export const aggregateAndPopulate = async (modelName, criteria, populateModel) => {
@@ -61,5 +61,5 @@ export const findAllWithPopulate = async (modelName, criteria, projection = {}, 
 
 export const findAllWithPopulateWithSorting = async (modelName, criteria, projection = {}, options: any = {}, populateModel) => {
     options.lean = true;
-    return modelName.find(criteria, projection, options).collation({locale: "en"}).populate(populateModel);
+    return modelName.find(criteria, projection, options).collation({ locale: "en" }).populate(populateModel);
 }
