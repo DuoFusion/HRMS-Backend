@@ -1,6 +1,6 @@
 import { attendanceModel, companyModel, holidayModel, invoiceModel, leaveModel, userModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { countData, createData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { deleteInvoiceSchema, getAllInvoicesSchema, getInvoiceByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -63,7 +63,7 @@ export const create_invoice = async (req, res) => {
 
 		const invoiceNumber = `INV-${year}${month}-${Date.now()}`;
 
-		const invoice = await invoiceModel.create({
+		let value = {
 			invoiceNumber,
 			userId,
 			companyId: company._id,
@@ -86,9 +86,9 @@ export const create_invoice = async (req, res) => {
 			igstAmount,
 			totalGstAmount,
 			netPay,
-		});
+		}
 
-		await invoice.save();
+		const invoice = await createData(invoiceModel, value);
 		return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Invoice"), invoice, {}));
 	} catch (error) {
 		console.log(error);
