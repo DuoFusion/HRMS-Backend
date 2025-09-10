@@ -10,5 +10,3 @@ router.get('/all', invoiceController.get_invoice);
 router.get('/:id', invoiceController.get_invoice_by_id);
 
 export const invoiceRoutes = router;
-
-
