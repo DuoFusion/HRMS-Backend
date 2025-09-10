@@ -76,7 +76,7 @@ export const edit_user_by_id = async (req, res) => {
 
         if (value.firstName && value.lastName) value.fullName = value.firstName + " " + value.lastName
 
-        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
+        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value, { new: true });
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("User"), response, {}));
     } catch (error) {
         console.log(error);
@@ -140,7 +140,7 @@ export const get_all_users = async (req, res) => {
         let populate = [
             { path: "companyId", select: "name" },
         ];
-        const response = await findAllWithPopulateWithSorting(userModel, criteria, '-password', options,populate);
+        const response = await findAllWithPopulateWithSorting(userModel, criteria, '-password', options, populate);
         const totalCount = await countData(userModel, criteria);
 
         const stateObj = {
@@ -170,8 +170,8 @@ export const get_user_by_id = async (req, res) => {
         let response = await getFirstMatch(userModel, { _id: new ObjectId(value.id), isDeleted: false }, '-password', {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
         let seat = await getFirstMatch(seatModel, { userId: new ObjectId(value.id), isDeleted: false }, {}, {})
-        
-        if(seat) response.seatNumber = seat.seatNumber
+
+        if (seat) response.seatNumber = seat.seatNumber
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("User"), response, {}));
     } catch (error) {
         console.log(error)
@@ -184,7 +184,7 @@ export const get_all_user_list = async (req, res) => {
     try {
         let response = await getData(userModel, { isDeleted: false }, 'fullName', {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
-        
+
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("User"), response, {}));
     } catch (error) {
         console.log(error)
