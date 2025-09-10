@@ -16,62 +16,42 @@ export const create_invoice = async (req, res) => {
 		const company = await companyModel.findById(user.companyId);
 		if (!company) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Company"), {}, {}));
 
-		const monthNames = [
-			"january", "february", "march", "april", "may", "june",
-			"july", "august", "september", "october", "november", "december"
-		];
+		const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
 		const monthIndex = monthNames.indexOf(month.toLowerCase());
 		const numericYear = Number(year);
 
-		if (monthIndex === -1 || isNaN(numericYear)) {
-			throw new Error("Invalid month or year");
-		}
+		if (monthIndex === -1 || isNaN(numericYear)) return res.status(404).json(new apiResponse(404, "Invalid month or year", {}, {}));
 
 		const startDate = new Date(numericYear, monthIndex, 1);
 		const endDate = new Date(numericYear, monthIndex + 1, 0);
 
-		const attendance = await attendanceModel.find({
-			userId: new ObjectId(userId),
-			date: { $gte: startDate, $lte: endDate },
-		});
+		const attendance = await attendanceModel.find({ userId: new ObjectId(userId), date: { $gte: startDate, $lte: endDate } });
 
 		const presentDays = attendance.filter(a => a.status === "PRESENT").length;
 		const overtimeMinutes = attendance.reduce((sum, a) => sum + (a.overtimeMinutes || 0), 0);
 
-		const leaves = await leaveModel.find({
-			userId: new ObjectId(userId),
-			status: "APPROVED",
-			startDate: { $lte: endDate },
-			endDate: { $gte: startDate },
-		});
+		const leaves = await leaveModel.find({ userId: new ObjectId(userId), status: "APPROVED", startDate: { $lte: endDate }, endDate: { $gte: startDate } });
 
 		const leaveDays = leaves.reduce((sum, l) => sum + (l.count || 0), 0);
 
-		const holidays = await holidayModel.find({
-			date: { $gte: startDate, $lte: endDate },
-			isBlocked: false,
-		});
+		const holidays = await holidayModel.find({ date: { $gte: startDate, $lte: endDate }, isBlocked: false })
 
 		const workingDays = Math.round(((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) + 1;
 
 		const baseSalary = user.salary || 0;
 
-		// ✅ Overtime Pay
 		let overtimePay = 0;
-		if (overtimeMinutes > 0 && company.overTimePaid) {
-			overtimePay = (overtimeMinutes / 60) * (baseSalary / 30 / 8);
-		}
+		if (overtimeMinutes > 0 && company.overTimePaid) overtimePay = (overtimeMinutes / 60) * (baseSalary / 30 / 8);
 
 		let netPay = baseSalary + overtimePay + bonus;
 
-		// ✅ GST Calculation
 		let gstPercentage = company.gstPercentage ? Number(company.gstPercentage) : 0;
 		let cgstAmount = 0, sgstAmount = 0, igstAmount = 0, totalGstAmount = 0;
 
-		if (company.gstInvoiceType && company.gstInvoiceType !== "NONE") {
+		if (company.gstInvoiceType) {
 			if (company.gstInvoiceType === "INTRA_STATE") {
-				cgstAmount = (netPay * gstPercentage) / 200; // Half GST
+				cgstAmount = (netPay * gstPercentage) / 200;
 				sgstAmount = (netPay * gstPercentage) / 200;
 				totalGstAmount = cgstAmount + sgstAmount;
 			} else if (company.gstInvoiceType === "INTER_STATE") {
@@ -109,10 +89,10 @@ export const create_invoice = async (req, res) => {
 		});
 
 		await invoice.save();
-		return res.status(200).json({ success: true, invoice });
+		return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Invoice"), {}, {}));
 	} catch (error) {
-		console.error(error);
-		return res.status(500).json({ success: false, message: "Server Error" });
+		console.log(error);
+		return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
 	}
 };
 
@@ -153,10 +133,9 @@ export const get_invoice = async (req, res) => {
 	let { user } = req.headers
 	try {
 		const { error, value } = getAllInvoicesSchema.validate(req.query);
-
 		if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-		let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, typeFilter, activeFilter } = value;
+		let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, typeFilter, activeFilter, userFilter } = value;
 		if (user.role === ROLES.EMPLOYEE || user.role === ROLES.PROJECT_MANAGER) criteria.userId = new ObjectId(user._id);
 
 		if (typeFilter) criteria.type = typeFilter;
@@ -170,6 +149,8 @@ export const get_invoice = async (req, res) => {
 				{ client: { $regex: search, $options: "i" } },
 			];
 		}
+
+		if (userFilter) criteria.userId = new ObjectId(userFilter)
 
 		let populate = [
 			{ path: "userId", select: "firstName lastName fullName email phoneNumber salary bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto" },
