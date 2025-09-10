@@ -124,7 +124,7 @@ export const get_invoice = async (req, res) => {
 		}
 
 		let populate = [
-			{ path: "userId", select: "firstName lastName fullName email phoneNumber salary bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto isEmailVerified otp otpExpireTime isDeleted isBlocked" },
+			{ path: "userId", select: "firstName lastName fullName email phoneNumber salary bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto" },
 			{ path: "companyId", select: "name ownerName address phoneNumber email logo" }
 		];
 
