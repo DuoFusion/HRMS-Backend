@@ -105,3 +105,7 @@ export const getAllInvoicesSchema = joi.object({
 export const deleteInvoiceSchema = joi.object().keys({
 	id: joi.string().required()
 })
+
+export const getInvoiceByIdSchema = joi.object().keys({
+    id: joi.string().required()
+})
