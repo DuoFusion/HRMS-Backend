@@ -172,11 +172,11 @@ export const get_invoice = async (req, res) => {
 			page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
 		};
 
-		if (response.length) {
-			return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('Invoice'), { response, stateObj }, {}));
-		} else {
-			return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Invoice'), {}, {}));
-		}
+		return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Invoice"), {
+            invoice_data: response || [],
+            totalData: totalCount,
+            state: stateObj
+        }, {}));
 
 	} catch (error) {
 		console.log(error);
