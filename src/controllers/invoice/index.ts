@@ -89,7 +89,7 @@ export const create_invoice = async (req, res) => {
 		});
 
 		await invoice.save();
-		return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Invoice"), {}, {}));
+		return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Invoice"), invoice, {}));
 	} catch (error) {
 		console.log(error);
 		return res.status(500).json(new apiResponse(500, responseMessage.internalServerError, {}, error));
