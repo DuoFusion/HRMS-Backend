@@ -1,6 +1,6 @@
 import { attendanceModel, companyModel, holidayModel, invoiceModel, leaveModel, userModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { countData, createData, findAllWithPopulateWithSorting, findOneAndPopulate, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { deleteInvoiceSchema, getAllInvoicesSchema, getInvoiceByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -149,11 +149,12 @@ export const get_invoice = async (req, res) => {
 				{ client: { $regex: search, $options: "i" } },
 			];
 		}
+        options.sort = { createdAt: -1 }
 
 		if (userFilter) criteria.userId = new ObjectId(userFilter)
 
 		let populate = [
-			{ path: "userId", select: "firstName lastName fullName email phoneNumber salary bankDetails parentsDetails aadharCardNumber panCardNumber position department designation profilePhoto" },
+			{ path: "userId", select: "firstName lastName fullName email phoneNumber bankDetails position department designation profilePhoto" },
 			{ path: "companyId", select: "name ownerName address phoneNumber email logo" }
 		];
 
@@ -188,8 +189,11 @@ export const get_invoice_by_id = async (req, res) => {
 	try {
 		const { error, value } = getInvoiceByIdSchema.validate(req.params);
 		if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
-		const response = await getFirstMatch(invoiceModel, { _id: new ObjectId(value.id), isDeleted: false }, {});
+		let populate = [
+			{ path: "userId", select: "firstName lastName fullName email phoneNumber bankDetails position department designation profilePhoto" },
+			{ path: "companyId", select: "name ownerName address phoneNumber email logo" }
+		];
+		const response = await findOneAndPopulate(invoiceModel, { _id: new ObjectId(value.id), isDeleted: false }, {}, {}, populate);
 		if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));
 		return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('Leave'), response, {}));
 	} catch (error) {
