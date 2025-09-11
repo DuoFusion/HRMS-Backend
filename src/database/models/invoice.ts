@@ -1,50 +1,41 @@
-const mongoose = require('mongoose')
+import { COMPANY_GST_INVOICE_TYPE, INVOICE_STATUS } from "../../common";
 
-const invoiceServiceSchema = new mongoose.Schema({
-	description: { type: String, },
-	quantity: { type: Number, default: 1, min: 0 },
-	rate: { type: Number, default: 0, min: 0 },
-	taxPercent: { type: Number, default: 0, min: 0 },
-	discount: { type: Number, default: 0, min: 0 }, 
-}, { _id: false });
+const mongoose = require('mongoose');
 
-const invoiceTotalsSchema = new mongoose.Schema({
-	subTotal: { type: Number, default: 0 },
-	taxAmount: { type: Number, default: 0 },
-	discountAmount: { type: Number, default: 0 },
-	grandTotal: { type: Number, default: 0 },
-	currency: { type: String, default: "INR" }
-}, { _id: false });
+const invoiceSchema = new mongoose.Schema({
+	invoiceNumber: { type: String, required: true, unique: true },
+	userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+	companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company", required: true },
 
-const invoicePartySchema = new mongoose.Schema({
-	name: { type: String },
-	companyName: { type: String },
-	email: { type: String },
-	phone: { type: String },
-	gstNumber: { type: String },
-	address: { type: String }
-}, { _id: false });
+	startDate: { type: Date },
+	endDate: { type: Date },
 
-const invoicePaymentSchema = new mongoose.Schema({
-	method: { type: String },
-	transactionId: { type: String },
-	status: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
-	paymentDate: { type: Date }
-}, { _id: false });
+	totalWorkingDays: { type: Number, default: 0 },
+	totalPresentDays: { type: Number, default: 0 },
+	totalLeaveDays: { type: Number, default: 0 },
+	totalHolidays: { type: Number, default: 0 },
+	totalOvertimeMinutes: { type: Number, default: 0 },
 
-const invoiceSchema: any = new mongoose.Schema({
-	invoiceNumber: { type: String, unique: true },
-	invoiceDate: { type: Date },
-	dueDate: { type: Date },
-	company: invoicePartySchema,
-	client: invoicePartySchema,
-	services: { type: [invoiceServiceSchema], default: [] },
-	totals: invoiceTotalsSchema,
-	payment: invoicePaymentSchema,
-	notes: { type: String },
-	status: { type: String, enum: ["draft", "sent", "paid", "cancelled"], default: "draft" },
-	userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
-	companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
+	baseSalary: { type: Number, default: 0 },
+	overtimePay: { type: Number, default: 0 },
+	bonus: { type: Number, default: 0 },
+
+	gstType: { type: String, enum: Object.values(COMPANY_GST_INVOICE_TYPE), default: null },
+	gstPercentage: { type: Number, default: 0 },
+	cgstAmount: { type: Number, default: 0 },
+	sgstAmount: { type: Number, default: 0 },
+	igstAmount: { type: Number, default: 0 },
+	totalGstAmount: { type: Number, default: 0 },
+
+	netPay: { type: Number, default: 0 },
+
+	status: { type: String, enum: Object.values(INVOICE_STATUS), default: INVOICE_STATUS.DRAFT },
+	notes: { type: String, default: "" },
+	pdfUrl: { type: String, default: null },
+	
+	createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+	updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+
 	isDeleted: { type: Boolean, default: false }
 }, { timestamps: true, versionKey: false });
 
