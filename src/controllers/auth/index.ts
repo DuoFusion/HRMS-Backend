@@ -180,8 +180,9 @@ export const forgot_password = async (req, res) => {
     try {
         const { error, value } = forgotPasswordSchema.validate(req.body)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
-
-        const admin = await userModel.findOne({ email: value?.email.toLowerCase(), role: ROLES.ADMIN, isDeleted: false })
+        console.log("email => ", JSON.stringify({ email: value.email, role: ROLES.ADMIN, isDeleted: false }));
+        const admin = await userModel.findOne({ email: value?.email, role: ROLES.ADMIN, isDeleted: false })
+        console.log("admin => ", admin);
         if (!admin) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound('Admin'), {}, {}))
 
         if (admin.isBlocked == true) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
@@ -235,7 +236,7 @@ export const reset_password_admin = async (req, res) => {
         const { error, value } = await resetPasswordAdminSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const admin = await getFirstMatch(userModel, { _id: new ObjectId(value.email), isDeleted: false });
+        const admin = await getFirstMatch(userModel, { email: value.email, isDeleted: false });
         if (!admin) return res.status(405).json(new apiResponse(405, responseMessage?.getDataNotFound('admin'), {}, {}));
 
         if (value.password !== value.confirmPassword) return res.status(400).json(new apiResponse(400, 'Password and Confirm Password Do Not Match', {}, {}))
@@ -243,7 +244,7 @@ export const reset_password_admin = async (req, res) => {
         const salt = await bcrypt.genSaltSync(10);
         const hashedPassword = await bcrypt.hash(value.password, salt);
 
-        const response = await updateData(userModel, { _id: new ObjectId(value.email), isDeleted: false }, { password: hashedPassword });
+        const response = await updateData(userModel, { email: value.email, isDeleted: false }, { password: hashedPassword });
         if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
 
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
