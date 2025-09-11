@@ -19,7 +19,6 @@ const CompanySchema = new mongoose.Schema({
     gstPercentage: { type: Number, default: null },
     overTimePaid: { type: Boolean, default: false },
     lateMinutes: { type: Number },
-    companyHours: { type: Number },
     totalWorkingHours: { type: Number, default: 9 },
     isDeleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
