@@ -214,7 +214,6 @@ export const resend_otp = async (req, res) => {
         if (!email) return res.status(400).json(new apiResponse(400, 'Email is required', {}, {}));
 
         const admin = await userModel.findOne({ email: email.toLowerCase(), role: ROLES.ADMIN, isDeleted: false });
-        console.log("admin??", ROLES.ADMIN);
 
         if (!admin) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Admin'), {}, {}));
 
