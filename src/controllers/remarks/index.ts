@@ -11,7 +11,8 @@ export const add_remark = async (req, res) => {
     try {
         const { error, value } = addRemarkSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
+        value.createdBy = new ObjectId(user._id);
+        value.updatedBy = new ObjectId(user._id);
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) value.userId = new ObjectId(user._id)
         value.type = REMARK_TYPE.MANUAL;
         const response = await createData(remarkModel, value);
@@ -26,10 +27,11 @@ export const add_remark = async (req, res) => {
 
 export const update_remark = async (req, res) => {
     reqInfo(req);
+    let { user } = req.headers;
     try {
         const { error, value } = updateRemarkSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-
+        value.updatedBy = new ObjectId(user._id);
         let isRemarkExist = await getFirstMatch(remarkModel, { _id: new ObjectId(value.remarkId), isDeleted: false }, {}, {});
         if (!isRemarkExist) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("Remark"), {}, {}));
 
@@ -75,6 +77,7 @@ export const get_all_remarks = async (req, res) => {
 
         let populate = [
             { path: "userId", select: "fullName profilePhoto" },
+            { path: "createdBy", select: "fullName profilePhoto" },
         ];
 
         options.sort = { createdAt: -1 };
