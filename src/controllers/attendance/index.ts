@@ -157,40 +157,45 @@ export const punch_out = async (req, res) => {
                 return res.status(400).json(new apiResponse(400, "No open session or check-in to check out", {}, {}));
             }
         }
-
         const computeTotals = async (att: any, companyId: any) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
             const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
             for (const session of allSessions) {
                 if (session.checkIn && session.checkOut) {
-                    totalMinutes += getHoursDifference(session.checkIn, session.checkOut) * 60;
+                    totalMinutes += getMinutesDifference(session.checkIn, session.checkOut);
                     if (Array.isArray(session.breaks)) {
                         for (const b of session.breaks) {
                             if (b.breakIn && b.breakOut) {
-                                breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                                breakMinutes += getMinutesDifference(b.breakIn, b.breakOut);
                             }
                         }
                     }
                 }
             }
-            const totalWorkingHours = totalMinutes / 60;
-            const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
 
-            let companyTotalWorkingHours = 9;
+            const productiveMinutes = Math.max(0, totalMinutes - breakMinutes);
+
+            let companyTotalWorkingMinutes = 9 * 60;
             if (companyId) {
                 const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
                 if (company?.totalWorkingHours) {
-                    companyTotalWorkingHours = company.totalWorkingHours;
+                    companyTotalWorkingMinutes = company.totalWorkingHours * 60;
                 }
             }
+            const overtimeMinutes = Math.max(0, productiveMinutes - companyTotalWorkingMinutes);
 
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
-            const productionHours = Math.round(productiveHours * 100) / 100;
-            return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
+            return {
+                totalWorkingHours: totalMinutes / 60,
+                productiveHours: productiveMinutes / 60,
+                overtimeMinutes,
+                productionHours: Math.round((productiveMinutes / 60) * 100) / 100,
+                breakMinutes,
+            };
         };
 
         const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions }, dbUser?.companyId);
+
         const updateDataObj: any = {
             checkOut: attendance.checkOut || currentTime,
             sessions,
@@ -201,16 +206,17 @@ export const punch_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             remarks: value.remarks || attendance.remarks,
-            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT } }
+            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT } },
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
 
-        const baseResponse2: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
+        const baseResponse2: any = response && typeof (response as any).toObject === "function" ? (response as any).toObject() : response;
+
         const formattedResponse = {
             ...baseResponse2,
-            date: formatDateForResponseUtc(baseResponse2.date)
+            date: formatDateForResponseUtc(baseResponse2.date),
         };
 
         return res.status(200).json(new apiResponse(200, "Check-out successful", formattedResponse, {}));
@@ -219,6 +225,7 @@ export const punch_out = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
+
 
 export const get_all_attendance = async (req, res) => {
     reqInfo(req);
@@ -231,13 +238,13 @@ export const get_all_attendance = async (req, res) => {
 
         criteria.isDeleted = false
 
-        options.sort = { date: -1 }
+        options.sort = { date: -1, createdAt: -1 }
 
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
-        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1, createdAt: 1 } : { date: -1, createdAt: -1 }
 
         if (startDate && endDate) criteria.createdAt = { $gte: startDate, $lte: endDate }
 
