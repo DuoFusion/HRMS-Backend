@@ -10,7 +10,9 @@ router.post('/login', authController.login);
 router.use(adminJWT)
 router.post('/register', authController.register);
 router.get('/profile', authController.get_profile);
-router.post('/reset/password', authController.reset_password)
-router.post('/resend-otp', VALIDATE_ROLE([ROLES.SUPER_ADMIN, ROLES.ADMIN]), authController.resend_otp);
+router.post('/otp-verification', authController.otp_verification)
+router.post('/forgot', authController.forgot_password)
+router.post('/resend-otp', authController.resend_otp);
+router.post('/reset/password', authController.reset_password);
 
 export const authRoutes = router
