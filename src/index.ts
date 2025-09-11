@@ -12,12 +12,19 @@ import { seedAdminUser } from './helper'
 import { monthlySalaryInvoiceJob, dailyAttendanceStatusJob } from './helper'
 const app = express();
 
-app.use("/uploads", express.static(path.join(__dirname, "..", "..", "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "..", "..", "uploads")));
+app.use("/uploads", (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*"); // or your frontend URL
+    res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    next();
+}, express.static(path.join(__dirname, "..", "..", "uploads")));
+
 const fileFilter = (req, file, cb) => {
     if (
         file.mimetype === "image/png" ||
         file.mimetype === "image/jpg" ||
-        file.mimetype === "image/jpeg" 
+        file.mimetype === "image/jpeg"
     ) {
         cb(null, true);
     } else {
