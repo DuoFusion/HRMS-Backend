@@ -4,7 +4,7 @@ import { config } from '../../../config';
 import { apiResponse, getUniqueOtp, ROLES } from '../../common';
 import { createData, email_verification_mail, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { moduleModel, permissionModel, roleModel, userModel } from '../../database';
-import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordSchema } from '../../validation';
+import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordAdminSchema, resetPasswordSchema } from '../../validation';
 import { send } from 'process';
 import { response } from 'express';
 
@@ -234,32 +234,52 @@ export const resend_otp = async (req, res) => {
     }
 };
 
+export const reset_password_admin = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = await resetPasswordAdminSchema.validate(req.body);
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const admin = await getFirstMatch(userModel, { _id: new ObjectId(value.email), isDeleted: false });
+        if (!admin) return res.status(405).json(new apiResponse(405, responseMessage?.getDataNotFound('admin'), {}, {}));
+
+        if (value.password !== value.confirmPassword) return res.status(400).json(new apiResponse(400, 'Password and Confirm Password Do Not Match', {}, {}))
+
+        const salt = await bcrypt.genSaltSync(10);
+        const hashedPassword = await bcrypt.hash(value.password, salt);
+
+        const response = await updateData(userModel, { _id: new ObjectId(value.email), isDeleted: false }, { password: hashedPassword });
+        if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
+    }
+}
+
 export const reset_password = async (req, res) => {
     reqInfo(req)
     try {
-        const { error, value } = await resetPasswordSchema.validate(req.body);
+        const { error, value } = await resetPasswordSchema.validate(req.body)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        const userId = value.userId
-        value.userId = userId;
-
         const admin = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false });
-        console.log("admin??", admin);
         if (!admin) return res.status(405).json(new apiResponse(405, responseMessage?.getDataNotFound('admin'), {}, {}));
 
-        const isOldPasswordCorrect = await bcrypt.compare(value.oldPassword, admin.password)
-        console.log("isOldPasswordCorrect??", isOldPasswordCorrect);
+        if (value.newPassword && value.oldPassword) {
+            const isPasswordMatch = await bcrypt.compare(value.oldPassword, admin.password);
+            if (!isPasswordMatch) return res.status(400).json(new apiResponse(400, 'Old password is incorrect', {}, {}));
 
-        if (!isOldPasswordCorrect) return res.status(400).json(new apiResponse(400, 'Old password is incorrect', {}, {}));
+            const salt = await bcrypt.genSaltSync(10)
+            const hashPassword = await bcrypt.hash(value.newPassword, salt)
+            delete value.oldPassword
+            delete value.newPassword
+            value.password = hashPassword
+        }
 
-        if (value.newPassword !== value.confirmPassword) return res.status(400).json(new apiResponse(400, 'New password and confirm password do not match', {}, {}))
-
-        const salt = await bcrypt.genSaltSync(10);
-        const hashedPassword = await bcrypt.hash(value.newPassword, salt);
-
-        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, { password: hashedPassword });
+        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
         if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
-
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
     } catch (error) {
         console.log(error);

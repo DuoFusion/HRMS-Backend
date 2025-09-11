@@ -24,3 +24,9 @@ export const forgotPasswordSchema = Joi.object().keys({
 export const getProfileSchema = Joi.object().keys({
     email: Joi.string().required()
 });
+
+export const resetPasswordAdminSchema = Joi.object().keys({
+    email: Joi.string().optional(),
+    password: Joi.string().optional(),
+    confirmPassword: Joi.string().optional(),
+});
