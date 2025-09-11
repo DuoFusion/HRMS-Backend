@@ -5,8 +5,6 @@ import { apiResponse, getUniqueOtp, ROLES } from '../../common';
 import { createData, email_verification_mail, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { moduleModel, permissionModel, roleModel, userModel } from '../../database';
 import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordAdminSchema, resetPasswordSchema } from '../../validation';
-import { send } from 'process';
-import { response } from 'express';
 
 const ObjectId = require("mongoose").Types.ObjectId
 
