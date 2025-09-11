@@ -17,7 +17,7 @@ export const otpVerifySchema = Joi.object().keys({
 });
 
 export const forgotPasswordSchema = Joi.object().keys({
-    email: Joi.string().email().required(),
+    email: Joi.string().required(),
 });
 
 export const getProfileSchema = Joi.object().keys({
