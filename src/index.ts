@@ -79,4 +79,5 @@ let server = new http.Server(app);
 seedAdminUser();
 monthlySalaryInvoiceJob.start();
 dailyAttendanceStatusJob.start();
+
 export default server;
