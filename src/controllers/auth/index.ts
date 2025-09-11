@@ -157,18 +157,16 @@ export const otp_verification = async (req, res) => {
     reqInfo(req);
     try {
         const { error, value } = otpVerifySchema.validate(req.body);
-
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
 
-        const admin = await userModel.findOne({ email: value.email.toLowerCase(), role: ROLES.ADMIN, isDeleted: false });
+        const admin = await userModel.findOne({ otp: value.otp, role: ROLES.ADMIN, isDeleted: false });
         if (!admin) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Admin'), {}, {}));
 
         if (admin.isBlocked) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
 
         if (admin.otp.toString() !== value.otp) return res.status(400).json(new apiResponse(400, responseMessage?.invalidOTP, {}, {}));
 
-        if (new Date(admin.otpExpireTime).getTime() < Date.now())
-            return res.status(410).json(new apiResponse(410, responseMessage?.expireOTP, {}, {}));
+        if (new Date(admin.otpExpireTime).getTime() < Date.now()) return res.status(410).json(new apiResponse(410, responseMessage?.expireOTP, {}, {}));
 
         return res.status(200).json(new apiResponse(200, responseMessage?.OTPVerified, {}, {}));
     } catch (error) {
@@ -181,7 +179,6 @@ export const forgot_password = async (req, res) => {
     reqInfo(req);
     try {
         const { error, value } = forgotPasswordSchema.validate(req.body)
-
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
 
         const admin = await userModel.findOne({ email: value?.email.toLowerCase(), role: ROLES.ADMIN, isDeleted: false })
@@ -209,7 +206,6 @@ export const resend_otp = async (req, res) => {
     reqInfo(req);
     try {
         const { email } = req.body;
-        console.log(email);
 
         if (!email) return res.status(400).json(new apiResponse(400, 'Email is required', {}, {}));
 
