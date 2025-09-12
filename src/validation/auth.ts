@@ -13,7 +13,7 @@ export const resetPasswordSchema = Joi.object().keys({
 });
 
 export const otpVerifySchema = Joi.object().keys({
-    otp: Joi.string().required()
+    otp: Joi.number().required()
 });
 
 export const forgotPasswordSchema = Joi.object().keys({
