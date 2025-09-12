@@ -178,9 +178,8 @@ export const forgot_password = async (req, res) => {
     try {
         const { error, value } = forgotPasswordSchema.validate(req.body)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
-        console.log("email => ", JSON.stringify({ email: value.email, role: ROLES.ADMIN, isDeleted: false }));
+        
         const admin = await userModel.findOne({ email: value?.email, role: ROLES.ADMIN, isDeleted: false })
-        console.log("admin => ", admin);
         if (!admin) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound('Admin'), {}, {}))
 
         if (admin.isBlocked == true) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
