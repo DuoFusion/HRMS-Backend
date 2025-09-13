@@ -858,6 +858,8 @@ export const break_out = async (req, res) => {
         };
 
         const totals = await computeTotals(attendance, sessions);
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT, timestamp: new Date() });
         const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, {
             sessions,
             totalWorkingHours: totals.totalWorkingHours,
@@ -866,9 +868,8 @@ export const break_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             currentStatus: ATTENDANCE_HISTORY_STATUS.BREAK_OUT,
-            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT } }
+            history: updatedHistory,
         });
-
         return res.status(200).json(new apiResponse(200, "Break ended", updated, {}));
     } catch (error) {
         console.log(error);
