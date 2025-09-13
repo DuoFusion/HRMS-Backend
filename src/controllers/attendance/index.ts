@@ -196,6 +196,8 @@ export const punch_out = async (req, res) => {
 
         const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions }, dbUser?.companyId);
 
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT, timestamp: new Date() });
         const updateDataObj: any = {
             checkOut: attendance.checkOut || currentTime,
             sessions,
@@ -206,7 +208,7 @@ export const punch_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             remarks: value.remarks || attendance.remarks,
-            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT } },
+            history: updatedHistory,
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
