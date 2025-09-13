@@ -272,7 +272,7 @@ export const get_all_attendance = async (req, res) => {
         let totalOvertimeMinutes = 0;
 
         allAttendance.forEach((attendance) => {
-            totalGetHours += attendance.totalWorkingHours || 0;
+            totalGetHours += attendance.productionHours || 0;
             totalBreakHours += attendance.breakMinutes || 0;
             totalLateMinutesHours += attendance.lateMinutes || 0;
             totalOvertimeMinutes += attendance.overtimeMinutes || 0;
