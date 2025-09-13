@@ -1,6 +1,6 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getData, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -262,6 +262,20 @@ export const get_all_attendance = async (req, res) => {
         const response = await findAllWithPopulateWithSorting(attendanceModel, criteria, {}, options, populate);
         const totalCount = await countData(attendanceModel, criteria);
 
+        const allAttendance = await getData(attendanceModel, criteria)
+
+        let totalGetHours = 0;
+        let totalBreakHours = 0;
+        let totalLateMinutesHours = 0;
+        let totalOvertimeMinutes = 0;
+
+        allAttendance.forEach((attendance) => {
+            totalGetHours += attendance.totalWorkingHours || 0;
+            totalBreakHours += attendance.breakMinutes || 0;
+            totalLateMinutesHours += attendance.lateMinutes || 0;
+            totalOvertimeMinutes += attendance.overtimeMinutes || 0;
+        });
+
         const formattedResponse = response.map(attendance => ({
             ...attendance,
             date: formatDateForResponseUtc(attendance.date),
@@ -276,6 +290,12 @@ export const get_all_attendance = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), {
             attendance_data: formattedResponse || [],
             totalData: totalCount,
+            totals: {
+                totalGetHours,
+                totalBreakHours,
+                totalLateMinutesHours,
+                totalOvertimeMinutes
+            },
             state: stateObj
         }, {}));
     } catch (error) {
@@ -867,6 +887,7 @@ export const manual_punch_out = async (req, res) => {
         todayStart.setHours(0, 0, 0, 0);
 
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: todayStart }, isDeleted: false }, {}, { sort: { date: -1 } });
+
         if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found", {}, {}));
         // Helper: parse a "hh:mm AM/PM" or "HH:MM" string as IST on the given attendance date and return UTC Date
         const parseIstTimeOnAttendanceDate = (attendanceDateUtc: Date, timeStr?: string | null): Date | null => {
@@ -915,7 +936,7 @@ export const manual_punch_out = async (req, res) => {
         if (openSessionIndex === -1) {
             // fallback to legacy fields
             if (attendance.checkIn && !attendance.checkOut) {
-                isLegacyOpen = true;
+            isLegacyOpen = true;
             }
         }
 
@@ -1019,6 +1040,9 @@ export const manual_punch_out = async (req, res) => {
             ? (attendance.remarks ? `${attendance.remarks}; ${value.remarks}` : value.remarks)
             : attendance.remarks;
 
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: "MANUAL_PUNCH_OUT", timestamp: new Date() });
+
         const updateDataObj: any = {
             checkOut: attendance.checkOut || punchOutTimeUtc,
             sessions,
@@ -1027,18 +1051,16 @@ export const manual_punch_out = async (req, res) => {
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
-            remarks: updatedRemarks
-            // note: we intentionally DO NOT modify `lateMinutes`
+            remarks: updatedRemarks,
+            currentStatus: "MANUAL_PUNCH_OUT",
+            history: updatedHistory
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
 
         const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
-        const formattedResponse = {
-            ...baseResponse,
-            date: formatDateForResponseUtc(baseResponse.date)
-        };
+        const formattedResponse = { ...baseResponse, date: formatDateForResponseUtc(baseResponse.date) };
 
         return res.status(200).json(new apiResponse(200, "Manual punch-out successful", formattedResponse, {}));
     } catch (err) {
