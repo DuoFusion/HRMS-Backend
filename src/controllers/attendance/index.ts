@@ -936,7 +936,7 @@ export const manual_punch_out = async (req, res) => {
         if (openSessionIndex === -1) {
             // fallback to legacy fields
             if (attendance.checkIn && !attendance.checkOut) {
-            isLegacyOpen = true;
+                isLegacyOpen = true;
             }
         }
 
@@ -1041,7 +1041,7 @@ export const manual_punch_out = async (req, res) => {
             : attendance.remarks;
 
         const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
-        updatedHistory.push({ status: "MANUAL_PUNCH_OUT", timestamp: new Date() });
+        updatedHistory.push({ status: ATTENDANCE_STATUS.MANUAL_PUNCH_OUT, timestamp: new Date() });
 
         const updateDataObj: any = {
             checkOut: attendance.checkOut || punchOutTimeUtc,
@@ -1052,7 +1052,7 @@ export const manual_punch_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             remarks: updatedRemarks,
-            currentStatus: "MANUAL_PUNCH_OUT",
+            currentStatus: ATTENDANCE_STATUS.MANUAL_PUNCH_OUT,
             history: updatedHistory
         };
 
