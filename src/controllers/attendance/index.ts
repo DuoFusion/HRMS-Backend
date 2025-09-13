@@ -543,8 +543,11 @@ export const get_today_attendance = async (req, res) => {
         if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
 
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
+        const company = await getFirstMatch(companyModel, { _id: new ObjectId(user.companyId) })
+
         const formatted = {
             ...base,
+            totalCompanyWorkingHours: company.totalWorkingHours,
             date: formatDateForResponseUtc(base.date),
             lastPunchOut: !!lastPunchOut
         };
