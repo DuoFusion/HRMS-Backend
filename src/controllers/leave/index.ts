@@ -1,6 +1,7 @@
-import { leaveModel } from "../../database";
+import { leaveModel, userModel } from "../../database";
 import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
-import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting } from "../../helper";
+import { SOCKET_EVENT } from "../../helper/socket_events";
+import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, send_real_time_update, create_and_emit_notification } from "../../helper";
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -13,12 +14,24 @@ export const add_leave = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
-        
-        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
-        if(value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED ) value.approvedBy = new ObjectId(user._id)
-        
+
+        if (value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+        if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
+
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
+
+        const notifyRoles = [ROLES.ADMIN, ROLES.HR];
+        const recipients = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
+        for (const r of recipients) {
+            await create_and_emit_notification({
+                userId: r._id,
+                title: 'New Leave Request',
+                message: `${user.fullName || 'An employee'} submitted a leave request`,
+                eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                meta: { type: 'leave', action: 'created', leaveId: String(response._id), byUserId: String((user as any)?._id) }
+            })
+        }
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess('Leave'), response, {}));
     } catch (error) {
         console.error(error);
@@ -32,14 +45,24 @@ export const update_leave = async (req, res) => {
     try {
         const { error, value } = updateLeaveSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-        
+
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(value.leaveId), isDeleted: false }, {}, {});
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));
-        
-        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+
+        if (value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
         if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, value, {});
+
+        if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) {
+            await create_and_emit_notification({
+                userId: isLeaveExit.userId,
+                title: value.status === LEAVE_STATUS.APPROVED ? 'Leave Approved' : 'Leave Rejected',
+                message: `Your leave request has been ${value.status}.`,
+                eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                meta: { type: 'leave', action: 'status', status: value.status, leaveId: String(isLeaveExit._id) }
+            })
+        }
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('Leave'), response, {}));
     } catch (error) {
         console.error(error);

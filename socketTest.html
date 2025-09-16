@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+</head>
+<body>
+    <h1>Socket Test</h1>
+    <p>Open the browser console to see socket messages.</p>
+
+    <script>
+        const socket = io('http://localhost:3000');
+      
+        socket.on('connect', () => {
+          console.log('Connected to socket server', socket.id);
+      
+          const roomId = '68ac679fc9a7f5219fe7c658';
+          socket.emit('joinRoom', { userId: roomId });
+          console.log('joinRoom emitted with', roomId);
+      
+          socket.emit('joinAll');
+          console.log('joinAll emitted');
+        });
+      
+        // Helper to attach a logger for a specific eventType
+        const logEvent = (eventType) => {
+          socket.on(eventType, (payload) => {
+            const time = new Date().toISOString();
+            console.log(`[${time}] EVENT ${eventType}:`, payload);
+          });
+        };
+      
+        // Register listeners for all event types we use
+        [
+          'notification:new',
+          'leave:new',
+          'leave:status',
+          'holiday:new',
+          'holiday:update',
+          'remark:new',
+          'attendance:late',
+          'birthday:today'
+        ].forEach(logEvent);
+      </script>
+</body>
+</html>

@@ -1,67 +1,19 @@
-import gcm from 'node-gcm'
-import { config } from '../../config';
+import { ROLES } from "../common";
+import { notificationModel, userModel } from "../database";
+import { send_real_time_update } from "./socket";
 
-const sender = new gcm.Sender(config.FCM_KEY)
-
-export const notification_to_user = async (sender_user_data: any, data: any, notification: any) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            if (sender_user_data && data && notification && sender_user_data?.deviceToken?.length != 0 && sender_user_data != undefined && sender_user_data != null) {
-                let message = new gcm.Message({
-                    data: data,
-                    notification: notification
-                });
-                sender.send(message, {
-                    registrationTokens: sender_user_data?.deviceToken
-                }, function (err, response) {
-                    if (err) {
-                        reject(err)
-                    } else {
-                        resolve(response)
-                    }
-                })
-            }
-            else {
-                resolve(true)
-            }
-        } catch (error) {
-            reject(error)
-        }
-    })
-}
-
-export const notification_to_multiple_user = async (multiple_user_data: any, data: any, notification: any) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            if (multiple_user_data && data && notification) {
-                let deviceToken: any = []
-                for (let i = 0; i < multiple_user_data?.length; i++) {
-                    deviceToken.push(...multiple_user_data[i]?.deviceToken)
-                }
-                if (deviceToken.length != 0) {
-                    let message = new gcm.Message({
-                        data: data,
-                        notification: notification
-                    });
-                    sender.send(message, {
-                        registrationTokens: deviceToken
-                    }, function (err, response) {
-                        if (err) {
-                            reject(err)
-                        } else {
-                            resolve(response)
-                        }
-                    })
-                }
-                else {
-                    resolve(true)
-                }
-            }
-            else {
-                resolve(true)
-            }
-        } catch (error) {
-            reject(error)
-        }
-    })
+export const create_and_emit_notification = async ({ userId, title, message, eventType, meta }: any) => {
+    try {
+        const notification = await notificationModel.create({ userId, title, message, eventType, meta });
+        const targetUserIds: string[] = [String(userId)];
+        const hrAndAdmins = await userModel.find({ role: { $in: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR] } }, "_id");
+        hrAndAdmins.forEach((u) => targetUserIds.push(String(u._id)));
+        await send_real_time_update(hrAndAdmins, {
+            eventType: eventType,
+            data: { userId, notificationId: String(notification._id), title, message, meta }
+        });
+        return notification;
+    } catch (error) {
+        throw error;
+    }
 }

@@ -1,6 +1,5 @@
 import * as bodyParser from 'body-parser'
-import express, { Request, Response } from 'express'
-import http from 'http'
+import express from 'express'
 import cors from 'cors'
 import { mongooseConnection } from './database'
 import * as packageInfo from '../package.json'
@@ -10,6 +9,7 @@ import path from 'path'
 import multer from 'multer';
 import { seedAdminUser } from './helper'
 import { monthlySalaryInvoiceJob, dailyAttendanceStatusJob } from './helper'
+import { socketServer } from './helper/socket'
 const app = express();
 
 // app.use("/uploads", express.static(path.join(__dirname, "..", "..", "uploads")));
@@ -81,10 +81,8 @@ app.get('/isServerUp', (req, res) => {
 app.use(router)
 app.use('*', bad_gateway);
 
-let server = new http.Server(app);
-
 seedAdminUser();
 monthlySalaryInvoiceJob.start();
 dailyAttendanceStatusJob.start();
 
-export default server;
+export default socketServer(app);

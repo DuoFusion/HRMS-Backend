@@ -2,6 +2,8 @@ import { CronJob } from 'cron';
 import { invoiceModel, userModel, attendanceModel, holidayModel, leaveModel } from "../database";
 import { calculateMonthlySalaryForUser, getNextInvoiceNumber, getPreviousMonthRange, makeSalaryServiceLine, computeInvoiceTotals } from "./salary";
 import { ATTENDANCE_STATUS, LEAVE_STATUS, ROLES } from '../common';
+import { send_real_time_update } from './socket';
+import { SOCKET_EVENT } from './socket_events';
 
 export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function () {
 	try {
@@ -112,4 +114,26 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 	}
 }, null, false, 'Asia/Kolkata');
 
-
+// Daily 9 AM IST birthday notification
+export const dailyBirthdayNotificationJob = new CronJob('0 0 9 * * *', async function () {
+    try {
+        const today = new Date();
+        const mm = today.getUTCMonth();
+        const dd = today.getUTCDate();
+        const users = await userModel.find({ dob: { $ne: null }, isDeleted: false, isBlocked: false }).lean();
+        for (const u of users) {
+            if (!u.dob) continue;
+            const d = new Date(u.dob);
+            if (d.getUTCMonth() === mm && d.getUTCDate() === dd) {
+                try {
+                    await send_real_time_update([String(u._id)], {
+                        eventType: SOCKET_EVENT.BIRTHDAY_TODAY,
+                        data: { userId: String(u._id), fullName: u.fullName }
+                    });
+                } catch (e) { }
+            }
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}, null, false, 'Asia/Kolkata');

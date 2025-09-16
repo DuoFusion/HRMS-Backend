@@ -1,6 +1,7 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getData, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getData, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst, send_real_time_update, create_and_emit_notification } from "../../helper";
+import { SOCKET_EVENT } from "../../helper/socket_events";
 import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -62,8 +63,15 @@ export const punch_in = async (req, res) => {
                 } catch (remarkError) {
                     console.log("Failed to create late punch-in remark:", remarkError);
                 }
+                await create_and_emit_notification({
+                    userId: user._id,
+                    title: 'Late Check-in',
+                    message: `You checked in late by ${lateMinutes} minutes.`,
+                    eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                    meta: { type: 'attendance', action: 'late', minutes: lateMinutes }
+                })
             }
-
+            
             if (latePunchInRemark) {
                 finalRemarks = finalRemarks
                     ? `${finalRemarks}; ${latePunchInRemark}`

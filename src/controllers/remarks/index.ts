@@ -1,6 +1,7 @@
-import { remarkModel } from "../../database";
+import { remarkModel, userModel } from "../../database";
 import { apiResponse, REMARK_TYPE, ROLES } from "../../common";
-import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting } from "../../helper";
+import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting, send_real_time_update, create_and_emit_notification } from "../../helper";
+import { SOCKET_EVENT } from "../../helper/socket_events";
 import { addRemarkSchema, updateRemarkSchema, deleteRemarkSchema, getAllRemarksSchema, getRemarkByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -18,6 +19,15 @@ export const add_remark = async (req, res) => {
         const response = await createData(remarkModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
 
+        if (value.userId) {
+            await create_and_emit_notification({
+                userId: value.userId,
+                title: 'New Remark',
+                message: `${user.fullName || 'Someone'} added a remark for you.`,
+                eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                meta: { type: 'remark', action: 'created', remarkId: String(response._id), byUserId: String(user._id) }
+            })
+        }
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess("Remark"), response, {}));
     } catch (error) {
         console.error(error);
