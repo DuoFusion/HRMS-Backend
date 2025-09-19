@@ -63,3 +63,11 @@ export const findAllWithPopulateWithSorting = async (modelName, criteria, projec
     options.lean = true;
     return modelName.find(criteria, projection, options).collation({ locale: "en" }).populate(populateModel);
 }
+
+export const deleteOne = async (modelName, criteria, options: any = {}) => {
+    return modelName.deleteOne(criteria, options);
+}
+
+export const deleteMany = async (modelName, criteria, options: any = {}) => {
+    return modelName.deleteMany(criteria, options);
+}

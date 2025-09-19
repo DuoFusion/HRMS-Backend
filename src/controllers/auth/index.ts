@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../../config';
 import { apiResponse, getUniqueOtp, ROLES } from '../../common';
-import { createData, email_verification_mail, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { createData, deleteOne, email_verification_mail, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { moduleModel, permissionModel, roleModel, userModel, userSessionModel } from '../../database';
 import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordAdminSchema, resetPasswordSchema } from '../../validation';
 
@@ -59,9 +59,7 @@ export const login = async (req, res) => {
 
         const token = generateToken(user._id.toString(), user.role);
 
-        //get all active session
-
-        const activeSession = await getDataWithSorting(userSessionModel, { userId: user._id, isActive: true }, {}, { sort: { createAt: 1 } });
+        const activeSession = await deleteOne(userSessionModel, { userId: user._id, isActive: true }, { sort: { createAt: 1 } });
 
         if (activeSession.length >= 3) {
             let oldestSession = activeSession[0];
