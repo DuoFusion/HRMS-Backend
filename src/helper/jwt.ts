@@ -3,7 +3,7 @@ import { apiResponse } from '../common'
 import { Request, Response } from 'express'
 import { responseMessage } from './response'
 import { config } from '../../config'
-import { userModel } from '../database'
+import { userModel, userSessionModel } from '../database'
 import { getFirstMatch } from './database_service'
 
 const ObjectId = require("mongoose").Types.ObjectId
@@ -14,6 +14,8 @@ export const adminJWT = async (req: Request, res: Response, next) => {
     if (authorization) {
         try {
             let isVerifyToken = jwt.verify(authorization, jwt_token_secret)
+            const session = await getFirstMatch(userSessionModel, { userId: new ObjectId(isVerifyToken._id), token: authorization })
+            if (!session) { return res.status(410).json(new apiResponse(410, "Session expired or logged in from another device", {}, {})) }
             result = await getFirstMatch(userModel, { _id: new ObjectId(isVerifyToken.userId), isDeleted: false }, '-password', {});
             if (result?.isBlocked == true) return res.status(410).json(new apiResponse(410, responseMessage?.accountBlock, {}, {}));
             if (result?.isDeleted == false) {

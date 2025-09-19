@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../../config';
 import { apiResponse, getUniqueOtp, ROLES } from '../../common';
-import { createData, email_verification_mail, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
-import { moduleModel, permissionModel, roleModel, userModel } from '../../database';
+import { createData, deleteOne, email_verification_mail, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { moduleModel, permissionModel, roleModel, userModel, userSessionModel } from '../../database';
 import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordAdminSchema, resetPasswordSchema } from '../../validation';
 
 const ObjectId = require("mongoose").Types.ObjectId
@@ -58,6 +58,15 @@ export const login = async (req, res) => {
         await updateData(userModel, { _id: new ObjectId(user._id), isDeleted: false }, { lastLoginAt: new Date() }, {});
 
         const token = generateToken(user._id.toString(), user.role);
+
+        const activeSession = await deleteOne(userSessionModel, { userId: user._id, isActive: true }, { sort: { createAt: 1 } });
+
+        if (activeSession.length >= 3) {
+            let oldestSession = activeSession[0];
+            await userSessionModel.updateData({ _id: oldestSession._id }, { idActive: false });
+        }
+
+        await userSessionModel.create({ userId: user._id, token, isActive: true })
 
         // Prepare response data
         const userResponse = {
@@ -270,10 +279,6 @@ export const reset_password = async (req, res) => {
             delete value.newPassword
             value.password = hashPassword
         }
-
-        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
-        if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
-        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
