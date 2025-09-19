@@ -40,6 +40,6 @@ router.use('/invoice', invoiceRoutes)
 router.use('/review', reviewRoutes)
 router.use('/remarks', remarkRoutes)
 router.use('/seat', seatRoutes)
-router.use('/notifications', notificationRoutes)
+router.use('/notification', notificationRoutes)
 
 export { router }

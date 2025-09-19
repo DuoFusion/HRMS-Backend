@@ -1,4 +1,4 @@
-import { remarkModel, userModel } from "../../database";
+import { remarkModel } from "../../database";
 import { apiResponse, REMARK_TYPE, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting, send_real_time_update, create_and_emit_notification } from "../../helper";
 import { SOCKET_EVENT } from "../../helper/socket_events";
