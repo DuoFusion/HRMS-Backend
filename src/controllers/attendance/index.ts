@@ -63,13 +63,17 @@ export const punch_in = async (req, res) => {
                 } catch (remarkError) {
                     console.log("Failed to create late punch-in remark:", remarkError);
                 }
-                await create_and_emit_notification({
-                    userId: user._id,
-                    title: 'Late Check-in',
-                    message: `You checked in late by ${lateMinutes} minutes.`,
-                    eventType: SOCKET_EVENT.NOTIFICATION_NEW,
-                    meta: { type: 'attendance', action: 'late', minutes: lateMinutes }
-                })
+                const notifyRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR];
+                const users = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
+                for(let allUser of users) {
+                    await create_and_emit_notification({
+                        userId: allUser._id,
+                        title: 'Late Check-in',
+                        message: `${user.fullName} checked in late by ${lateMinutes} minutes.`,
+                        eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                        meta: { type: 'remark', action: 'late', minutes: lateMinutes }
+                    })
+                }
             }
             
             if (latePunchInRemark) {

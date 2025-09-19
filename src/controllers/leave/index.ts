@@ -21,11 +21,12 @@ export const add_leave = async (req, res) => {
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
 
-        const notifyRoles = [ROLES.ADMIN, ROLES.HR];
-        const recipients = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
-        for (const r of recipients) {
+        const notifyRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR];
+        const users = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
+        for (const allUser of users) {
             await create_and_emit_notification({
-                userId: r._id,
+                userId: allUser._id,
+                companyId: allUser?.companyId,
                 title: 'New Leave Request',
                 message: `${user.fullName || 'An employee'} submitted a leave request`,
                 eventType: SOCKET_EVENT.NOTIFICATION_NEW,
@@ -57,11 +58,17 @@ export const update_leave = async (req, res) => {
         if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) {
             await create_and_emit_notification({
                 userId: isLeaveExit.userId,
-                title: value.status === LEAVE_STATUS.APPROVED ? 'Leave Approved' : 'Leave Rejected',
+                title: value.status === LEAVE_STATUS.APPROVED ? "Leave Approved" : "Leave Rejected",
                 message: `Your leave request has been ${value.status}.`,
                 eventType: SOCKET_EVENT.NOTIFICATION_NEW,
-                meta: { type: 'leave', action: 'status', status: value.status, leaveId: String(isLeaveExit._id) }
-            })
+                meta: {
+                    type: "leave",
+                    action: "status",
+                    status: value.status,
+                    leaveId: String(isLeaveExit._id),
+                    byUserId: String(user._id)
+                }
+            });
         }
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('Leave'), response, {}));
     } catch (error) {
