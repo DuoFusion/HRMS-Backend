@@ -136,7 +136,12 @@ export const get_invoice = async (req, res) => {
 		if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
 		let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, typeFilter, activeFilter, userFilter } = value;
-		if (user.role === ROLES.EMPLOYEE || user.role === ROLES.PROJECT_MANAGER) criteria.userId = new ObjectId(user._id);
+
+		if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+			criteria.companyId = new ObjectId(user.companyId);
+		} else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+			criteria.companyId = new ObjectId(user._id)
+		}
 
 		if (typeFilter) criteria.type = typeFilter;
 		if (activeFilter === true) criteria.isBlocked = true

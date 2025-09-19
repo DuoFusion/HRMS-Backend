@@ -1,10 +1,11 @@
 import Joi from "joi";
 
 export const addSeatSchema = Joi.object({
+    userId: Joi.string().optional(),
+    companyId: Joi.string().optional(),
     seatNumber: Joi.number().required(),
     floor: Joi.string().allow(null, "").optional(),
     section: Joi.string().allow(null, "").optional(),
-    userId: Joi.string().optional(),
 });
 
 export const updateSeatSchema = Joi.object({

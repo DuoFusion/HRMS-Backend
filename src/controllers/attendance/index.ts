@@ -1,7 +1,7 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
 import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
-import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
+import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -63,15 +63,12 @@ export const punch_in = async (req, res) => {
                     console.log("Failed to create late punch-in remark:", remarkError);
                 }
             }
-
             if (latePunchInRemark) {
                 finalRemarks = finalRemarks
                     ? `${finalRemarks}; ${latePunchInRemark}`
                     : latePunchInRemark;
             }
         }
-
-        // Build session to append
         const newSession = {
             checkIn: currentTime,
             checkOut: null,
@@ -85,7 +82,7 @@ export const punch_in = async (req, res) => {
         if (existingAttendance) {
             const sessions = Array.isArray(existingAttendance.sessions) ? existingAttendance.sessions : [];
             sessions.push(newSession);
-            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions, currentStatus: ATTENDANCE_HISTORY_STATUS.PUNCH_IN, $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN } } });
+            response = await updateData(attendanceModel, { _id: new ObjectId(existingAttendance._id) }, { checkOut: null, sessions, currentStatus: ATTENDANCE_HISTORY_STATUS.PUNCH_IN, $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_IN } } },{ new: true });
         } else {
             response = await createData(attendanceModel, {
                 userId: new ObjectId(user._id),
@@ -233,9 +230,14 @@ export const get_all_attendance = async (req, res) => {
 
         options.sort = { date: -1 }
 
-        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
-
-        if (userFilter) criteria.userId = new ObjectId(userFilter)
+        if (user.role === ROLES.EMPLOYEE) {
+            criteria.userId = new ObjectId(user._id)
+            if (user.companyId) criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER) {
+            if (user.companyId) criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            if (user.companyId) criteria.companyId = new ObjectId(user.companyId)
+        }
 
         if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
 
@@ -250,6 +252,7 @@ export const get_all_attendance = async (req, res) => {
 
         let populate = [
             { path: "userId", select: "fullName" },
+            { path: "companyId", select: "name logo" },
         ];
 
         const response = await findAllWithPopulateWithSorting(attendanceModel, criteria, {}, options, populate);
@@ -313,9 +316,25 @@ export const getAttendanceById = async (req, res) => {
 
 export const add_attendance = async (req, res) => {
     reqInfo(req);
-    const { userId, date, status, remarks, checkIn, checkOut, sessions } = req.body;
-
+    const { user } = req.headers;
+    let { userId, date, status, remarks, checkIn, checkOut, sessions } = req.body;
     try {
+        let criteria: any = { isDeleted: false };
+
+        if (user.role === ROLES.EMPLOYEE || user.role === ROLES.PROJECT_MANAGER) { criteria.userId = new ObjectId(user._id) };
+
+        if (user.role === ROLES.ADMIN) {
+            if (req.query.userId && ObjectId.isValid(req.query.userId)) {
+                criteria.userId = new ObjectId(req.query.userId);
+            }
+        }
+
+        if (user.role === ROLES.SUPER_ADMIN) {
+            if (req.query.userId && ObjectId.isValid(req.query.userId)) {
+                criteria.userId = new ObjectId(req.query.userId);
+            }
+        }
+
         if (!userId || !date) {
             return res.status(400).json(new apiResponse(400, "userId and date are required", {}, {}));
         }

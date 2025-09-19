@@ -2,6 +2,8 @@ import Joi from "joi";
 
 export const addRoleSchema = Joi.object().keys({
     name: Joi.string().required(),
+    userId: Joi.string().optional(),
+    companyId: Joi.string().optional(),
 });
 
 export const editRoleSchema = Joi.object().keys({

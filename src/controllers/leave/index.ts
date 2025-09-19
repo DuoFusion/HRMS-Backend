@@ -1,6 +1,6 @@
-import { leaveModel } from "../../database";
+import { leaveModel, userModel } from "../../database";
 import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
-import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting } from "../../helper";
+import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findAllWithPopulate } from "../../helper";
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -13,10 +13,16 @@ export const add_leave = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
-        
-        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
-        if(value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED ) value.approvedBy = new ObjectId(user._id)
-        
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('leave'), {}, {}));
+        }
+
+        if (value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+        if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
+
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess('Leave'), response, {}));
@@ -32,11 +38,11 @@ export const update_leave = async (req, res) => {
     try {
         const { error, value } = updateLeaveSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
-        
+
         let isLeaveExit = await getFirstMatch(leaveModel, { _id: new ObjectId(value.leaveId), isDeleted: false }, {}, {});
         if (!isLeaveExit) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Leave'), {}, {}));
-        
-        if(value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
+
+        if (value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
         if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, value, {});
@@ -72,7 +78,11 @@ export const get_all_leaves = async (req, res) => {
 
         let criteria: any = { isDeleted: false }, options: any = {}, { page, limit, search, userFilter, typeFilter, statusFilter, startDate, endDate, activeFilter } = value;
 
-        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id)
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR ) {
+            criteria.companyId = new ObjectId(user.companyId);
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id);
+        }
 
         options.sort = { createdAt: -1 }
         if (userFilter) criteria.userId = userFilter;
@@ -89,7 +99,8 @@ export const get_all_leaves = async (req, res) => {
 
         let populate = [
             { path: "userId", select: "fullName email role profilePhoto" },
-            { path: "approvedBy", select: "fullName email role profilePhoto" }
+            { path: "approvedBy", select: "fullName email role profilePhoto" },
+            { path: "companyId", select: "name logo" },
         ];
 
         if (page && limit) {

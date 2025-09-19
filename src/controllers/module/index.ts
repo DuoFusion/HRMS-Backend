@@ -1,5 +1,5 @@
 import { reqInfo, responseMessage } from "../../helper";
-import { apiResponse } from "../../common";
+import { apiResponse, ROLES } from "../../common";
 import { moduleModel, permissionModel } from "../../database";
 import { getFirstMatch, createData, updateData, getData, aggregateData, updateMany } from "../../helper/database_service";
 
@@ -78,8 +78,16 @@ export const delete_module_by_id = async (req, res) => {
 
 export const get_all_module = async (req, res) => {
     reqInfo(req)
-    let { page, limit, search, activeFilter } = req.query, match: any = {};
+    let criteria: any = { isDeleted: false }, { page, limit, search, activeFilter } = req.query, match: any = {};
+    const { user } = req.headers
     try {
+
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.userId = new ObjectId(user._id)
+        }
+
         if (search) {
             match.$or = [
                 { name: { $regex: search, $options: 'si' } },

@@ -1,8 +1,11 @@
 import Joi from "joi";
+import { LEAVE_TYPE } from "../common";
 
 export const addRemarkSchema = Joi.object({
   userId: Joi.string().required(),
   note: Joi.string().required(),
+  companyId: Joi.string().required(),
+  type: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
 });
 
 export const updateRemarkSchema = Joi.object({

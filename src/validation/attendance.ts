@@ -1,4 +1,5 @@
 import Joi from 'joi'
+import { HOLIDAY_TYPE } from '../common'
 
 export const checkInSchema = Joi.object({
     remarks: Joi.string().optional().allow('', null)
@@ -21,6 +22,34 @@ export const breakInSchema = Joi.object({
 })
 
 export const breakOutSchema = Joi.object({
+})
+
+export const add_attendanceSchema = Joi.object({
+    userId: Joi.string().required(),
+    companyId: Joi.string().required(),
+    date: Joi.date().iso().required(),
+    checkIn: Joi.date().iso().required(),
+    title: Joi.string().required(),
+    description: Joi.string().required(),
+    type: Joi.string().valid(...Object.values(HOLIDAY_TYPE)).optional(),
+})
+
+// Minimal, leave-like schema for manual attendance creation
+export const addManualAttendanceSchema = Joi.object({
+    userId: Joi.string().optional(),
+    date: Joi.date().iso().required(),
+    status: Joi.string().valid("Present", "Absent", "Half Day", "Leave").optional(),
+    remarks: Joi.string().optional().allow('', null),
+    checkIn: Joi.date().iso().optional(),
+    checkOut: Joi.date().iso().optional(),
+    sessions: Joi.array().items(Joi.object({
+        checkIn: Joi.date().iso().optional(),
+        checkOut: Joi.date().iso().optional(),
+        breaks: Joi.array().items(Joi.object({
+            breakIn: Joi.date().iso().optional(),
+            breakOut: Joi.date().iso().optional()
+        })).optional()
+    })).optional()
 })
 
 export const getAttendanceSchema = Joi.object({

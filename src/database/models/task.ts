@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 import { TASK_PRIORITY, TASK_STATUS, TASK_TYPE } from "../../common";
 
 const TaskSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'company' },
     title: { type: String, required: true },
     description: { type: String, default: '' },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'project' },
     status: { type: String, enum: Object.values(TASK_STATUS) },
     startDate: { type: Date, default: null },

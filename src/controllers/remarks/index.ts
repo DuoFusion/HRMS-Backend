@@ -1,7 +1,8 @@
-import { remarkModel } from "../../database";
+import { companyModel, remarkModel, userModel } from "../../database";
 import { apiResponse, REMARK_TYPE, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting } from "../../helper";
-import { addRemarkSchema, updateRemarkSchema, deleteRemarkSchema, getAllRemarksSchema, getRemarkByIdSchema } from "../../validation";
+import { addRemarkSchema, updateRemarkSchema, deleteRemarkSchema, getAllRemarksSchema, getRemarkByIdSchema, getAllLeavesSchema } from "../../validation";
+
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -13,7 +14,15 @@ export const add_remark = async (req, res) => {
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
         value.createdBy = new ObjectId(user._id);
         value.updatedBy = new ObjectId(user._id);
-        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('remarks'), {}, {}))
+        }
+
         value.type = REMARK_TYPE.MANUAL;
         const response = await createData(remarkModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
@@ -59,6 +68,7 @@ export const delete_remark_by_id = async (req, res) => {
     }
 };
 
+
 export const get_all_remarks = async (req, res) => {
     reqInfo(req);
     let { user } = req.headers;
@@ -69,7 +79,11 @@ export const get_all_remarks = async (req, res) => {
         let criteria: any = { isDeleted: false }, options: any = {};
         const { page, limit, search, userFilter, startDate, endDate } = value;
 
-        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)            
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id)
+        }
 
         if (userFilter) criteria.userId = userFilter;
         if (search) criteria.note = { $regex: search, $options: "si" };
@@ -86,7 +100,7 @@ export const get_all_remarks = async (req, res) => {
             options.limit = parseInt(limit);
         }
 
-        const response = await findAllWithPopulateWithSorting(remarkModel, criteria, {}, options, populate);
+        const response = await findAllWithPopulateWithSorting(remarkModel, criteria, {}, options, populate);        
         const totalCount = await countData(remarkModel, criteria);
 
         const stateObj = {
@@ -105,6 +119,8 @@ export const get_all_remarks = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
+
+
 
 export const get_remark_by_id = async (req, res) => {
     reqInfo(req);

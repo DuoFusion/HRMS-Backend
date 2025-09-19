@@ -1,15 +1,25 @@
-import { seatModel } from "../../database";
-import { apiResponse } from "../../common";
+import { seatModel, userModel } from "../../database";
+import { apiResponse, ROLES } from "../../common";
 import { createData, countData, getFirstMatch, reqInfo, updateData, responseMessage, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addSeatSchema, updateSeatSchema, deleteSeatSchema, getAllSeatsSchema, getSeatByIdSchema } from "../../validation";
+
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
 export const add_seat = async (req, res) => {
     reqInfo(req);
+    const { user } = req.headers
     try {
         const { error, value } = addSeatSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Seat'), {}, {}));
+        }
 
         const isExist = await getFirstMatch(seatModel, { seatNumber: value.seatNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(404).json(new apiResponse(404, responseMessage?.dataAlreadyExist("Seat Number"), {}, {}));
@@ -58,8 +68,10 @@ export const delete_seat_by_id = async (req, res) => {
     }
 };
 
+
 export const get_all_seats = async (req, res) => {
     reqInfo(req);
+    const { user } = req.headers
     try {
         const { error, value } = getAllSeatsSchema.validate(req.query);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
@@ -69,8 +81,15 @@ export const get_all_seats = async (req, res) => {
         if (userFilter) criteria.userId = new ObjectId(userFilter);
         if (search) criteria.seatNumber = { $regex: search, $options: "si" };
 
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id)
+        }
+
         let populate = [
             { path: "userId", select: "fullName profilePhoto" },
+            { path: "companyId", select: "name logo" }
         ];
 
         options.sort = { createdAt: -1 };
@@ -90,6 +109,7 @@ export const get_all_seats = async (req, res) => {
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("Seats"), {
             seat_data: response || [],
+
             totalData: totalCount,
             state: stateObj
         }, {}));
@@ -98,6 +118,7 @@ export const get_all_seats = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
+
 
 export const get_seat_by_id = async (req, res) => {
     reqInfo(req);

@@ -1,15 +1,24 @@
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, findAllWithPopulateWithSorting, getData, reqInfo, responseMessage, updateData } from "../../helper";
-import { reviewModel } from "../../database";
+import { countData, createData, findAllWithPopulateWithSorting, getData, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { reviewModel, userModel } from "../../database";
 import { addReviewSchema, deleteReviewSchema, getAllReviewSchema, getReviewSchema, updateReviewSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
 export const add_review = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers
     try {
         const { error, value } = addReviewSchema.validate(req.body);
         if (error) return res.status(400).json(new apiResponse(400, error.details[0].message, {}, {}));
+
+        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Role'), {}, {}));
+        }
 
         const response = await createData(reviewModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}))
@@ -61,8 +70,13 @@ export const get_all_reviews = async (req, res) => {
 
         let { page, limit, search, userFilter, startDate, endDate } = value, criteria: any = {}, options: any = { lean: true };
 
-
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userId = new ObjectId(user._id);
+
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id)
+        }
 
         if (userFilter) criteria.userId = new ObjectId(userFilter)
 
@@ -79,6 +93,8 @@ export const get_all_reviews = async (req, res) => {
         options.sort = { createdAt: -1 }
         let populate = [
             { path: "userId", select: "fullName profilePhoto" },
+            { path: "companyId", select: "fullName profilePhoto" },
+
         ];
         if (page && limit) {
             options.skip = (parseInt(page) - 1) * parseInt(limit);

@@ -2,8 +2,9 @@ import joi from 'joi';
 import { TASK_PRIORITY, TASK_STATUS, TASK_TYPE } from '../common';
 
 export const addTaskSchema = joi.object().keys({
-    title: joi.string().required(),
     userId: joi.string().optional(),
+    companyId: joi.string().optional(),
+    title: joi.string().required(),
     description: joi.string(),
     status: joi.string().valid(...Object.values(TASK_STATUS)).optional(),
     priority: joi.string().valid(...Object.values(TASK_PRIORITY)).optional(),

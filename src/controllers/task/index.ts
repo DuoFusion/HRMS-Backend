@@ -1,8 +1,9 @@
-import { taskModel, userModel } from "../../database";
+import { companyModel, taskModel, userModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
 import { countData, createData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
 import { addTaskSchema, deleteTaskSchema, getAllTasksSchema, getTaskByIdSchema, updateTaskSchema } from "../../validation";
 import { ObjectId } from "mongoose";
+
 
 const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -14,6 +15,14 @@ export const add_task = async (req, res) => {
 
         if (!value.status) {
             value.status = 'pending';
+        }
+
+        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Task'), {}, {}));
         }
 
         value.statusHistory = [{
@@ -77,7 +86,7 @@ export const edit_task_by_id = async (req, res) => {
 
         const response = await updateData(taskModel, { _id: new ObjectId(value.taskId), isDeleted: false }, value, { timestamps });
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('task'), {}, {}))
-        
+
         let populateModel = [
             { path: 'userId', select: 'fullName email role profilePhoto' },
             { path: 'projectId', select: 'name' },
@@ -123,10 +132,14 @@ export const get_all_task = async (req, res) => {
 
         options.sort = { updatedAt: -1 }
 
-        if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.EMPLOYEE) criteria.$or = [{ userId: new ObjectId(user._id) }, { userIds: {$in: [new ObjectId(user._id)]} }];
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id)
+        }
 
         if (priorityFilter) criteria.priority = priorityFilter;
-        if (userFilter) criteria.$or = [{ userId: new ObjectId(userFilter) }, { userIds: {$in: [new ObjectId(userFilter)]} }];
+        if (userFilter) criteria.$or = [{ userId: new ObjectId(userFilter) }, { userIds: { $in: [new ObjectId(userFilter)] } }];
         if (startDate && endDate) criteria.endDate = { $gte: startDate, $lte: endDate };
 
         if (search) {
@@ -147,8 +160,9 @@ export const get_all_task = async (req, res) => {
             { path: 'statusHistory.userId', select: 'fullName email role profilePhoto' },
             { path: 'comments.userId', select: 'fullName email role profilePhoto' },
             { path: 'userIds', select: 'fullName email role profilePhoto' },
+            { path: "companyId", select: "name logo" },
         ]
-        
+
         const response = await findAllWithPopulateWithSorting(taskModel, criteria, {}, options, populateModel)
         const totalCount = await countData(taskModel, criteria)
 

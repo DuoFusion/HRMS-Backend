@@ -3,6 +3,7 @@ import { LEAVE_DAY_TYPE, LEAVE_STATUS, LEAVE_TYPE } from "../../common";
 
 const leaveSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
     startDate: { type: Date },
     endDate: { type: Date },
     type: { type: String, enum: Object.values(LEAVE_TYPE) },

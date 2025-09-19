@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 
 const attendanceSchema: any = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company"},
     date: { type: Date, required: true },
     checkIn: { type: Date, default: null },
     checkOut: { type: Date, default: null },

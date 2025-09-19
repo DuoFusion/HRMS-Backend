@@ -1,15 +1,25 @@
-import { projectModel } from "../../database";
+import { projectModel, userModel } from "../../database";
 import { apiResponse, ROLES } from "../../common";
-import { countData, createData, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate } from "../../helper";
+import { countData, createData, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findOneAndPopulate, getFirstMatch } from "../../helper";
 import { addProjectSchema, deleteProjectSchema, getAllProjectsSchema, getProjectByIdSchema, updateProjectSchema } from "../../validation";
 
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export const add_project = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers
+
     try {
         const { error, value } = addProjectSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Index'), {}, {}));
+        }
 
         const response = await createData(projectModel, value);
 
@@ -55,15 +65,23 @@ export const delete_project_by_id = async (req, res) => {
 export const get_all_project = async (req, res) => {
     reqInfo(req)
     let { user } = req.headers
+    console.log('user', user);
+
     try {
         const { error, value } = getAllProjectsSchema.validate(req.query)
         if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}))
 
         let { page, limit, search, statusFilter, startDate, endDate, sortOrder, activeFilter, userFilter } = value, criteria: any = {}, options: any = { lean: true };
 
-        criteria.isDeleted = false
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId);
+            console.log('id', user.role);
 
-        if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) criteria.userIds = { $in: [new ObjectId(user._id)] }
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id);
+        }
+
+        criteria.isDeleted = false
 
         if (statusFilter) criteria.status = statusFilter
 
@@ -78,9 +96,9 @@ export const get_all_project = async (req, res) => {
 
         if (search) {
             criteria.$or = [
-                { name: { $regex: search, $options: "si" } },
-                { description: { $regex: search, $options: "si" } },
-                { status: { $regex: search, $options: "si" } },
+                { name: { $regex: search, $options: "i" } },
+                { description: { $regex: search, $options: "i" } },
+                { status: { $regex: search, $options: "i" } },
             ]
         }
 
@@ -91,6 +109,8 @@ export const get_all_project = async (req, res) => {
 
         let populateModel = [{ path: 'userIds', select: 'fullName email role' }]
         const response = await findAllWithPopulateWithSorting(projectModel, criteria, {}, options, populateModel)
+        console.log(projectModel, criteria);
+
         const totalCount = await countData(projectModel, criteria)
 
         const stateObj = {

@@ -1,15 +1,18 @@
-import { holidayModel } from "../../database";
-import { apiResponse } from "../../common";
-import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import {  holidayModel } from "../../database";
+import { apiResponse, ROLES } from "../../common";
+import {  countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { addHolidaySchema, deleteHolidaySchema, getAllHolidaySchema, getHolidaySchema, updateHolidaySchema } from "../../validation";
 
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export const add_holiday = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers
     try {
         const { error, value } = addHolidaySchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
 
         const response = await createData(holidayModel, value);
 
@@ -54,11 +57,18 @@ export const delete_holiday_by_id = async (req, res) => {
 
 export const get_all_holiday = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers
     try {
         const { error, value } = getAllHolidaySchema.validate(req.query)
         if (error) { return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {})) }
 
         let { page, limit, search, activeFilter, startDate, endDate } = value, criteria: any = {}, options: any = { lean: true };
+
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId);
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id);
+        }
 
         criteria.isDeleted = false;
         if (search) {
@@ -69,7 +79,7 @@ export const get_all_holiday = async (req, res) => {
             ];
         }
 
-        if(startDate && endDate) criteria.date = { $gte: new Date(startDate), $lte: new Date(endDate) }
+        if (startDate && endDate) criteria.date = { $gte: new Date(startDate), $lte: new Date(endDate) }
 
         criteria.isBlocked = activeFilter === true ? true : false
         options.sort = { createdAt: -1 }

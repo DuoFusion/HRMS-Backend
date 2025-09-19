@@ -2,6 +2,8 @@ import joi from 'joi';
 import { PROJECT_STATUS } from '../common';
 
 export const addProjectSchema = joi.object().keys({
+    userId: joi.string().optional(),
+    companyId: joi.string().optional(),
     name: joi.string().required(),
     description: joi.string().optional(),
     userIds: joi.array().items(joi.string()).optional(),

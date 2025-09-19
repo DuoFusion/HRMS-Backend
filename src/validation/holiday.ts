@@ -2,6 +2,8 @@ import Joi from "joi";
 import { HOLIDAY_TYPE } from "../common";
 
 export const addHolidaySchema = Joi.object({
+    userId : Joi.string().required(),
+    companyId : Joi.string().required(),
     title: Joi.string().required(),
     description: Joi.string().required(),
     date: Joi.date().iso().required(),

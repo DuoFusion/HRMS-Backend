@@ -2,6 +2,7 @@ import { HOLIDAY_TYPE } from "../../common";
 const mongoose = require('mongoose')
 
 const holiDaySchema = new mongoose.Schema({
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'company' },
     title: { type: String },
     description: { type: String },
     date: { type: Date },

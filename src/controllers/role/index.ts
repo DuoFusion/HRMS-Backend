@@ -1,6 +1,6 @@
-import { apiResponse } from "../../common";
-import { roleModel } from "../../database";
-import { countData, createData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
+import { apiResponse, ROLES } from "../../common";
+import { companyModel, roleModel, userModel } from "../../database";
+import { countData, createData, findAllWithPopulate, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from "../../helper";
 import { addRoleSchema, deleteRoleSchema, editRoleSchema, getAllRoleSchema, getRoleSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId
@@ -11,6 +11,15 @@ export const add_role = async (req, res) => {
     try {
         const { error, value } = addRoleSchema.validate(req.body)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
+
+        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
+        if (user.role === ROLES.SUPER_ADMIN) {
+            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
+            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Role'), {}, {}));
+        }
+
 
         value.createdBy = new ObjectId(user._id)
         value.updatedBy = new ObjectId(user._id)
@@ -66,13 +75,22 @@ export const delete_role_by_id = async (req, res) => {
     }
 }
 
+
 export const get_all_role = async (req, res) => {
     reqInfo(req)
+    const { user } = req.headers
     try {
         const { error, value } = getAllRoleSchema.validate(req.query)
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
 
-        let { page, limit, search, activeFilter } = value, criteria: any = {}, options: any = { lean: true };
+        let criteria: any = { isDeleted: false }, options: any = {};
+        const { page, limit, search, userFilter, startDate, endDate } = value;
+
+        if (user.role === ROLES.ADMIN || user.role === ROLES.HR) {
+            criteria.companyId = new ObjectId(user.companyId)
+        } else if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
+            criteria.companyId = new ObjectId(user._id)
+        }
 
         criteria.isDeleted = false;
 
@@ -82,7 +100,7 @@ export const get_all_role = async (req, res) => {
             ];
         }
 
-        criteria.isBlocked = activeFilter === true ? true : false
+        criteria.isBlocked === true ? true : false
 
         options.sort = { createdAt: -1 }
 
@@ -105,6 +123,7 @@ export const get_all_role = async (req, res) => {
             totalData: totalCount,
             state: stateObj
         }, {}));
+
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))

@@ -3,6 +3,7 @@ import { LEAVE_DAY_TYPE, LEAVE_STATUS, LEAVE_TYPE } from "../common";
 
 export const addLeaveSchema = Joi.object().keys({
     userId: Joi.string().optional(),
+    companyId: Joi.string().optional(),
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
     type: Joi.string().valid(...Object.values(LEAVE_TYPE)).required(),
@@ -38,6 +39,7 @@ export const getAllLeavesSchema = Joi.object().keys({
     typeFilter: Joi.string().valid(...Object.values(LEAVE_TYPE)).optional(),
     statusFilter: Joi.string().valid(...Object.values(LEAVE_STATUS)).optional(),
     startDate: Joi.date().optional(),
+    
     endDate: Joi.date().optional(),
     search: Joi.string().optional()
 });

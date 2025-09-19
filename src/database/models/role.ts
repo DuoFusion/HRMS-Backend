@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
 
 const roleSchema: any = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "company" },
     name: { type: String },
     isDeleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
