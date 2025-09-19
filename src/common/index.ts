@@ -99,7 +99,8 @@ export const ATTENDANCE_STATUS = {
     PRESENT: "Present",
     ABSENT: "Absent",
     HALF_DAY: "Half Day",
-    LEAVE: "Leave"
+    LEAVE: "Leave",
+    MANUAL_PUNCH_OUT: "Manual Punch OUT",
 }
 
 export const PROJECT_STATUS = {

@@ -1,7 +1,8 @@
 import { attendanceModel, userModel, companyModel, holidayModel, remarkModel } from "../../database";
 import { apiResponse, ATTENDANCE_HISTORY_STATUS, ATTENDANCE_STATUS, REMARK_TYPE, ROLES } from "../../common";
-import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst } from "../../helper";
-import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, deleteAttendanceSchema } from "../../validation";
+import { computeLateMinutesIst, countData, createData, findAllWithPopulateWithSorting, formatDateForResponseUtc, formatTimeForResponseUtc, getData, getDataWithSorting, getFirstMatch, getHoursDifference, getMinutesDifference, istToUtc, parseUtcTimeStringToUtcToday, reqInfo, responseMessage, updateData, utcToIst, send_real_time_update, create_and_emit_notification } from "../../helper";
+import { SOCKET_EVENT } from "../../helper/socket_events";
+import { checkInSchema, checkOutSchema, manualPunchOutSchema, getAttendanceSchema, getAttendanceByIdSchema, updateAttendanceSchema, deleteAttendanceSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -62,7 +63,19 @@ export const punch_in = async (req, res) => {
                 } catch (remarkError) {
                     console.log("Failed to create late punch-in remark:", remarkError);
                 }
+                const notifyRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR];
+                const users = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
+                for(let allUser of users) {
+                    await create_and_emit_notification({
+                        userId: allUser._id,
+                        title: 'Late Check-in',
+                        message: `${user.fullName} checked in late by ${lateMinutes} minutes.`,
+                        eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                        meta: { type: 'remark', action: 'late', minutes: lateMinutes }
+                    })
+                }
             }
+            
             if (latePunchInRemark) {
                 finalRemarks = finalRemarks
                     ? `${finalRemarks}; ${latePunchInRemark}`
@@ -154,40 +167,47 @@ export const punch_out = async (req, res) => {
                 return res.status(400).json(new apiResponse(400, "No open session or check-in to check out", {}, {}));
             }
         }
-
         const computeTotals = async (att: any, companyId: any) => {
             let totalMinutes = 0;
             let breakMinutes = 0;
             const allSessions = Array.isArray(att.sessions) && att.sessions.length > 0 ? att.sessions : (att.checkIn && att.checkOut ? [{ checkIn: att.checkIn, checkOut: att.checkOut, breaks: [] }] : []);
             for (const session of allSessions) {
                 if (session.checkIn && session.checkOut) {
-                    totalMinutes += getHoursDifference(session.checkIn, session.checkOut) * 60;
+                    totalMinutes += getMinutesDifference(session.checkIn, session.checkOut);
                     if (Array.isArray(session.breaks)) {
                         for (const b of session.breaks) {
                             if (b.breakIn && b.breakOut) {
-                                breakMinutes += getHoursDifference(b.breakIn, b.breakOut) * 60;
+                                breakMinutes += getMinutesDifference(b.breakIn, b.breakOut);
                             }
                         }
                     }
                 }
             }
-            const totalWorkingHours = totalMinutes / 60;
-            const productiveHours = Math.max(0, totalWorkingHours - (breakMinutes / 60));
 
-            let companyTotalWorkingHours = 9;
+            const productiveMinutes = Math.max(0, totalMinutes - breakMinutes);
+
+            let companyTotalWorkingMinutes = 9 * 60;
             if (companyId) {
                 const company = await getFirstMatch(companyModel, { _id: new ObjectId(companyId), isDeleted: false }, { totalWorkingHours: 1 }, {});
                 if (company?.totalWorkingHours) {
-                    companyTotalWorkingHours = company.totalWorkingHours;
+                    companyTotalWorkingMinutes = company.totalWorkingHours * 60;
                 }
             }
+            const overtimeMinutes = Math.max(0, productiveMinutes - companyTotalWorkingMinutes);
 
-            const overtimeMinutes = Math.max(0, (totalWorkingHours - companyTotalWorkingHours) * 60);
-            const productionHours = Math.round(productiveHours * 100) / 100;
-            return { totalWorkingHours, productiveHours, overtimeMinutes, productionHours, breakMinutes };
+            return {
+                totalWorkingHours: totalMinutes / 60,
+                productiveHours: productiveMinutes / 60,
+                overtimeMinutes,
+                productionHours: Math.round((productiveMinutes / 60) * 100) / 100,
+                breakMinutes,
+            };
         };
 
         const totals = await computeTotals({ ...attendance.toObject?.() ?? attendance, sessions }, dbUser?.companyId);
+
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT, timestamp: new Date() });
         const updateDataObj: any = {
             checkOut: attendance.checkOut || currentTime,
             sessions,
@@ -198,16 +218,17 @@ export const punch_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             remarks: value.remarks || attendance.remarks,
-            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.PUNCH_OUT } }
+            history: updatedHistory,
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
 
-        const baseResponse2: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
+        const baseResponse2: any = response && typeof (response as any).toObject === "function" ? (response as any).toObject() : response;
+
         const formattedResponse = {
             ...baseResponse2,
-            date: formatDateForResponseUtc(baseResponse2.date)
+            date: formatDateForResponseUtc(baseResponse2.date),
         };
 
         return res.status(200).json(new apiResponse(200, "Check-out successful", formattedResponse, {}));
@@ -216,6 +237,7 @@ export const punch_out = async (req, res) => {
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 };
+
 
 export const get_all_attendance = async (req, res) => {
     reqInfo(req);
@@ -228,7 +250,7 @@ export const get_all_attendance = async (req, res) => {
 
         criteria.isDeleted = false
 
-        options.sort = { date: -1 }
+        options.sort = { date: -1, createdAt: -1 }
 
         if (user.role === ROLES.EMPLOYEE) {
             criteria.userId = new ObjectId(user._id)
@@ -239,7 +261,7 @@ export const get_all_attendance = async (req, res) => {
             if (user.companyId) criteria.companyId = new ObjectId(user.companyId)
         }
 
-        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1 } : { date: -1 }
+        if (dateFilter) options.sort = dateFilter === "asc" ? { date: 1, createdAt: 1 } : { date: -1, createdAt: -1 }
 
         if (startDate && endDate) criteria.createdAt = { $gte: startDate, $lte: endDate }
 
@@ -258,6 +280,20 @@ export const get_all_attendance = async (req, res) => {
         const response = await findAllWithPopulateWithSorting(attendanceModel, criteria, {}, options, populate);
         const totalCount = await countData(attendanceModel, criteria);
 
+        const allAttendance = await getData(attendanceModel, criteria)
+
+        let totalGetHours = 0;
+        let totalBreakHours = 0;
+        let totalLateMinutesHours = 0;
+        let totalOvertimeMinutes = 0;
+
+        allAttendance.forEach((attendance) => {
+            totalGetHours += attendance.productionHours || 0;
+            totalBreakHours += attendance.breakMinutes || 0;
+            totalLateMinutesHours += attendance.lateMinutes || 0;
+            totalOvertimeMinutes += attendance.overtimeMinutes || 0;
+        });
+
         const formattedResponse = response.map(attendance => ({
             ...attendance,
             date: formatDateForResponseUtc(attendance.date),
@@ -272,6 +308,12 @@ export const get_all_attendance = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), {
             attendance_data: formattedResponse || [],
             totalData: totalCount,
+            totals: {
+                totalGetHours,
+                totalBreakHours,
+                totalLateMinutesHours,
+                totalOvertimeMinutes
+            },
             state: stateObj
         }, {}));
     } catch (error) {
@@ -533,8 +575,11 @@ export const get_today_attendance = async (req, res) => {
         if (!attendance) return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('attendance'), { lastPunchOut: !!lastPunchOut }, {}));
 
         const base = (attendance && typeof attendance.toObject === 'function') ? attendance.toObject() : attendance;
+        const company = await getFirstMatch(companyModel, { _id: new ObjectId(user.companyId) })
+
         const formatted = {
             ...base,
+            totalCompanyWorkingHours: company.totalWorkingHours,
             date: formatDateForResponseUtc(base.date),
             lastPunchOut: !!lastPunchOut
         };
@@ -850,6 +895,8 @@ export const break_out = async (req, res) => {
         };
 
         const totals = await computeTotals(attendance, sessions);
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT, timestamp: new Date() });
         const updated = await updateData(attendanceModel, { _id: new ObjectId(attendance._id) }, {
             sessions,
             totalWorkingHours: totals.totalWorkingHours,
@@ -858,9 +905,8 @@ export const break_out = async (req, res) => {
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
             currentStatus: ATTENDANCE_HISTORY_STATUS.BREAK_OUT,
-            $push: { history: { status: ATTENDANCE_HISTORY_STATUS.BREAK_OUT } }
+            history: updatedHistory,
         });
-
         return res.status(200).json(new apiResponse(200, "Break ended", updated, {}));
     } catch (error) {
         console.log(error);
@@ -879,6 +925,7 @@ export const manual_punch_out = async (req, res) => {
         todayStart.setHours(0, 0, 0, 0);
 
         const attendance: any = await getFirstMatch(attendanceModel, { userId: new ObjectId(user._id), date: { $lt: todayStart }, isDeleted: false }, {}, { sort: { date: -1 } });
+
         if (!attendance) return res.status(400).json(new apiResponse(400, "No attendance record found", {}, {}));
         // Helper: parse a "hh:mm AM/PM" or "HH:MM" string as IST on the given attendance date and return UTC Date
         const parseIstTimeOnAttendanceDate = (attendanceDateUtc: Date, timeStr?: string | null): Date | null => {
@@ -1031,6 +1078,9 @@ export const manual_punch_out = async (req, res) => {
             ? (attendance.remarks ? `${attendance.remarks}; ${value.remarks}` : value.remarks)
             : attendance.remarks;
 
+        const updatedHistory = Array.isArray(attendance.history) ? [...attendance.history] : [];
+        updatedHistory.push({ status: ATTENDANCE_STATUS.MANUAL_PUNCH_OUT, timestamp: new Date() });
+
         const updateDataObj: any = {
             checkOut: attendance.checkOut || punchOutTimeUtc,
             sessions,
@@ -1039,18 +1089,16 @@ export const manual_punch_out = async (req, res) => {
             overtimeMinutes: totals.overtimeMinutes,
             productionHours: totals.productionHours,
             breakMinutes: totals.breakMinutes,
-            remarks: updatedRemarks
-            // note: we intentionally DO NOT modify `lateMinutes`
+            remarks: updatedRemarks,
+            currentStatus: ATTENDANCE_STATUS.MANUAL_PUNCH_OUT,
+            history: updatedHistory
         };
 
         const response = await updateData(attendanceModel, { _id: attendance._id }, updateDataObj);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("attendance"), {}, {}));
 
         const baseResponse: any = (response && typeof (response as any).toObject === 'function') ? (response as any).toObject() : response;
-        const formattedResponse = {
-            ...baseResponse,
-            date: formatDateForResponseUtc(baseResponse.date)
-        };
+        const formattedResponse = { ...baseResponse, date: formatDateForResponseUtc(baseResponse.date) };
 
         return res.status(200).json(new apiResponse(200, "Manual punch-out successful", formattedResponse, {}));
     } catch (err) {

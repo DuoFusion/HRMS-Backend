@@ -1,6 +1,7 @@
 import { leaveModel, userModel } from "../../database";
 import { apiResponse, LEAVE_STATUS, ROLES } from "../../common";
-import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, findAllWithPopulate } from "../../helper";
+import { SOCKET_EVENT } from "../../helper/socket_events";
+import { createData, countData, getFirstMatch, reqInfo, responseMessage, updateData, findAllWithPopulateWithSorting, send_real_time_update, create_and_emit_notification } from "../../helper";
 import { addLeaveSchema, updateLeaveSchema, deleteLeaveSchema, getAllLeavesSchema, getLeaveByIdSchema } from "../../validation";
 
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -14,17 +15,24 @@ export const add_leave = async (req, res) => {
 
         if (user.role !== ROLES.ADMIN) value.userId = new ObjectId(user._id)
 
-        if (user.role !== ROLES.SUPER_ADMIN) value.companyId = new ObjectId(user.companyId)
-        if (user.role === ROLES.SUPER_ADMIN) {
-            let user = await getFirstMatch(userModel, { _id: new ObjectId(value.userId) }, {}, {})
-            if (!user) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('leave'), {}, {}));
-        }
-
         if (value.status === LEAVE_STATUS.PENDING) value.approvedBy = null
         if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
 
         const response = await createData(leaveModel, value);
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.addDataError, {}, {}));
+
+        const notifyRoles = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR];
+        const users = await userModel.find({ role: { $in: notifyRoles }, isDeleted: false, isBlocked: false }, { _id: 1 }).lean();
+        for (const allUser of users) {
+            await create_and_emit_notification({
+                userId: allUser._id,
+                companyId: allUser?.companyId,
+                title: 'New Leave Request',
+                message: `${user.fullName || 'An employee'} submitted a leave request`,
+                eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                meta: { type: 'leave', action: 'created', leaveId: String(response._id), byUserId: String((user as any)?._id) }
+            })
+        }
         return res.status(200).json(new apiResponse(200, responseMessage?.addDataSuccess('Leave'), response, {}));
     } catch (error) {
         console.error(error);
@@ -46,6 +54,22 @@ export const update_leave = async (req, res) => {
         if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) value.approvedBy = new ObjectId(user._id)
 
         const response = await updateData(leaveModel, { _id: new ObjectId(value.leaveId) }, value, {});
+
+        if (value.status === LEAVE_STATUS.APPROVED || value.status === LEAVE_STATUS.REJECTED) {
+            await create_and_emit_notification({
+                userId: isLeaveExit.userId,
+                title: value.status === LEAVE_STATUS.APPROVED ? "Leave Approved" : "Leave Rejected",
+                message: `Your leave request has been ${value.status}.`,
+                eventType: SOCKET_EVENT.NOTIFICATION_NEW,
+                meta: {
+                    type: "leave",
+                    action: "status",
+                    status: value.status,
+                    leaveId: String(isLeaveExit._id),
+                    byUserId: String(user._id)
+                }
+            });
+        }
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('Leave'), response, {}));
     } catch (error) {
         console.error(error);

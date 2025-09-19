@@ -155,9 +155,131 @@ const ObjectId = require("mongoose").Types.ObjectId
 
             return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("profile"), userResponse, {}));
 
-        } catch (error) {
-            console.log('Get profile error:', error);
-            return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    } catch (error) {
+        console.log('Get profile error:', error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+};
+
+
+export const otp_verification = async (req, res) => {
+    reqInfo(req);
+    try {
+        const { error, value } = otpVerifySchema.validate(req.body);
+        if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
+
+        const admin = await userModel.findOne({ otp: value.otp, role: ROLES.ADMIN, isDeleted: false });
+        if (!admin) return res.status(404).json(new apiResponse(404, "Invalid OTP", {}, {}));
+
+        if (admin.isBlocked) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
+
+        if (admin.otp !== value.otp) return res.status(400).json(new apiResponse(400, responseMessage?.invalidOTP, {}, {}));
+
+        if (new Date(admin.otpExpireTime).getTime() < Date.now()) return res.status(410).json(new apiResponse(410, responseMessage?.expireOTP, {}, {}));
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.OTPVerified, {}, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+};
+
+export const forgot_password = async (req, res) => {
+    reqInfo(req);
+    try {
+        const { error, value } = forgotPasswordSchema.validate(req.body)
+        if (error) return res.status(400).json(new apiResponse(400, error?.details[0]?.message, {}, {}));
+
+        const admin = await userModel.findOne({ email: value?.email, role: ROLES.ADMIN, isDeleted: false })
+        if (!admin) return res.status(400).json(new apiResponse(400, responseMessage?.getDataNotFound('Admin'), {}, {}))
+
+        if (admin.isBlocked == true) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
+
+        const otp = await getUniqueOtp()
+        const otpExpireTime = new Date(Date.now() + 2 * 60 * 1000); // 2 minute from now
+
+        let response = await userModel.findOneAndUpdate({ _id: new ObjectId(admin?._id) }, { otp, otpExpireTime }, { new: true })
+
+        await email_verification_mail(admin, otp);
+
+        if (response) return res.status(200).json(new apiResponse(200, responseMessage?.otpSendSuccess, {}, {}));
+        return res.status(404).json(new apiResponse(404, responseMessage?.errorMail, {}, `${response}`));
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+}
+
+export const resend_otp = async (req, res) => {
+    reqInfo(req);
+    try {
+        const { email } = req.body;
+
+        if (!email) return res.status(400).json(new apiResponse(400, 'Email is required', {}, {}));
+
+        const admin = await userModel.findOne({ email: email.toLowerCase(), role: ROLES.ADMIN, isDeleted: false });
+
+        if (!admin) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('Admin'), {}, {}));
+
+        if (admin.isBlocked) return res.status(403).json(new apiResponse(403, responseMessage?.accountBlock, {}, {}));
+
+        const otp = await getUniqueOtp();
+        const otpExpireTime = new Date(Date.now() + 2 * 60 * 1000);
+
+        await updateData(userModel, { _id: new ObjectId(admin._id) }, { otp, otpExpireTime });
+
+        await email_verification_mail(admin, otp);
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.otpSendSuccess, {}, {}));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+};
+
+export const reset_password_admin = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = await resetPasswordAdminSchema.validate(req.body);
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const admin = await getFirstMatch(userModel, { email: value.email, isDeleted: false });
+        if (!admin) return res.status(405).json(new apiResponse(405, responseMessage?.getDataNotFound('admin'), {}, {}));
+
+        if (value.password !== value.confirmPassword) return res.status(400).json(new apiResponse(400, 'Password and Confirm Password Do Not Match', {}, {}))
+
+        const salt = await bcrypt.genSaltSync(10);
+        const hashedPassword = await bcrypt.hash(value.password, salt);
+
+        const response = await updateData(userModel, { email: value.email, isDeleted: false }, { password: hashedPassword });
+        if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
+    }
+}
+
+export const reset_password = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = await resetPasswordSchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const admin = await getFirstMatch(userModel, { _id: new ObjectId(value.userId), isDeleted: false });
+        if (!admin) return res.status(405).json(new apiResponse(405, responseMessage?.getDataNotFound('admin'), {}, {}));
+
+        if (value.newPassword && value.oldPassword) {
+            const isPasswordMatch = await bcrypt.compare(value.oldPassword, admin.password);
+            if (!isPasswordMatch) return res.status(400).json(new apiResponse(400, 'Old password is incorrect', {}, {}));
+
+            const salt = await bcrypt.genSaltSync(10)
+            const hashPassword = await bcrypt.hash(value.newPassword, salt)
+            delete value.oldPassword
+            delete value.newPassword
+            value.password = hashPassword
         }
     };
 

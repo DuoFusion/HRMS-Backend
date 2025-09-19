@@ -14,12 +14,11 @@ export const resetPasswordSchema = Joi.object().keys({
 });
 
 export const otpVerifySchema = Joi.object().keys({
-    email: Joi.string().required(),
-    otp: Joi.string().required()
+    otp: Joi.number().required()
 });
 
 export const forgotPasswordSchema = Joi.object().keys({
-    email: Joi.string().email().required(),
+    email: Joi.string().required(),
 });
 
 export const getProfileSchema = Joi.object().keys({

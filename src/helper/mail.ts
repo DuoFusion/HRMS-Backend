@@ -11,6 +11,9 @@ const option: any = {
         user: config.MAIL,
         pass: config.MAIL_PASSWORD,
     },
+    tls: {
+        rejectUnauthorized: false, // only if needed
+    }
 }
 const transPorter = nodemailer.createTransport(option)
 
@@ -84,7 +87,7 @@ export const email_verification_mail = async (user: any, otp: any) => {
     };
             await transPorter.sendMail(mailOptions, function (err, data) {
                 if (err) {
-                    console.log(err)
+                    console.log("err => ",err)  
                     reject(err)
                 } else {
                     resolve(`Email has been sent to ${user.email}, kindly follow the instructions`)
