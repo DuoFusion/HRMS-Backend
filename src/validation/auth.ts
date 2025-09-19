@@ -1,4 +1,5 @@
 import Joi from "joi";
+import mongoose, { mongo } from "mongoose";
 
 export const loginSchema = Joi.object().keys({
     email: Joi.string().required(),
