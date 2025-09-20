@@ -62,7 +62,7 @@ export const add_user_module_access = async (req, res) => {
 };
 
 // Update user module access
-export const update_user_module_access = async (req, res) => {
+export const edit_user_module_access = async (req, res) => {
     reqInfo(req);
     try {
         const { error, value } = updateUserModuleAccessSchema.validate(req.body);
