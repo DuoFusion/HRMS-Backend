@@ -1,13 +1,7 @@
 import { apiResponse, ROLES } from '../../common';
-import { countData, createData, findAllWithPopulateWithSorting, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData, aggregateData } from '../../helper';
+import { countData, createData, findAllWithPopulateWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
 import { userModuleAccessModel, userModel, moduleModel, permissionModel } from '../../database';
-import { 
-    grantUserModuleAccessSchema, 
-    updateUserModuleAccessSchema, 
-    getUserModuleAccessSchema, 
-    revokeUserModuleAccessSchema,
-    bulkGrantUserModuleAccessSchema 
-} from '../../validation';
+import { grantUserModuleAccessSchema, updateUserModuleAccessSchema, getUserModuleAccessSchema, revokeUserModuleAccessSchema, bulkGrantUserModuleAccessSchema } from '../../validation';
 
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -28,10 +22,10 @@ export const add_user_module_access = async (req, res) => {
         if (!module) return res.status(404).json(new apiResponse(404, "Module not found", {}, {}));
 
         // Check if access already exists
-        const existingAccess = await getFirstMatch(userModuleAccessModel, { 
-            userId: new ObjectId(value.userId), 
+        const existingAccess = await getFirstMatch(userModuleAccessModel, {
+            userId: new ObjectId(value.userId),
             moduleId: new ObjectId(value.moduleId),
-            isDeleted: false 
+            isDeleted: false
         }, {}, {});
 
         if (existingAccess) {
@@ -68,9 +62,9 @@ export const edit_user_module_access = async (req, res) => {
         const { error, value } = updateUserModuleAccessSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const existingAccess = await getFirstMatch(userModuleAccessModel, { 
-            _id: new ObjectId(value.accessId), 
-            isDeleted: false 
+        const existingAccess = await getFirstMatch(userModuleAccessModel, {
+            _id: new ObjectId(value.accessId),
+            isDeleted: false
         }, {}, {});
 
         if (!existingAccess) {
@@ -134,7 +128,7 @@ export const get_user_module_access = async (req, res) => {
         // Filter by search if provided
         let filteredResponse = response;
         if (search) {
-            filteredResponse = response.filter((access: any) => 
+            filteredResponse = response.filter((access: any) =>
                 access.moduleId?.tabName?.toLowerCase().includes(search.toLowerCase()) ||
                 access.moduleId?.displayName?.toLowerCase().includes(search.toLowerCase())
             );
@@ -164,16 +158,16 @@ export const revoke_user_module_access = async (req, res) => {
         const { error, value } = revokeUserModuleAccessSchema.validate(req.body);
         if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}));
 
-        const existingAccess = await getFirstMatch(userModuleAccessModel, { 
-            _id: new ObjectId(value.accessId), 
-            isDeleted: false 
+        const existingAccess = await getFirstMatch(userModuleAccessModel, {
+            _id: new ObjectId(value.accessId),
+            isDeleted: false
         }, {}, {});
 
         if (!existingAccess) {
             return res.status(404).json(new apiResponse(404, "Module access not found", {}, {}));
         }
 
-        const response = await updateData(userModuleAccessModel, { _id: new ObjectId(value.accessId) }, { 
+        const response = await updateData(userModuleAccessModel, { _id: new ObjectId(value.accessId) }, {
             isDeleted: true,
             reason: value.reason || "Access revoked"
         }, { new: true });
@@ -214,10 +208,10 @@ export const bulk_grant_user_module_access = async (req, res) => {
                 }
 
                 // Check if access already exists
-                const existingAccess = await getFirstMatch(userModuleAccessModel, { 
-                    userId: new ObjectId(userId), 
+                const existingAccess = await getFirstMatch(userModuleAccessModel, {
+                    userId: new ObjectId(userId),
                     moduleId: new ObjectId(moduleAccess.moduleId),
-                    isDeleted: false 
+                    isDeleted: false
                 }, {}, {});
 
                 if (existingAccess) {
@@ -263,7 +257,7 @@ export const get_user_effective_permissions = async (req, res) => {
     reqInfo(req);
     try {
         const { userId } = req.params;
-        
+
         if (!userId) {
             return res.status(400).json(new apiResponse(400, "User ID is required", {}, {}));
         }
@@ -273,13 +267,13 @@ export const get_user_effective_permissions = async (req, res) => {
         if (!targetUser) return res.status(404).json(new apiResponse(404, "User not found", {}, {}));
 
         // Get role-based permissions
-        const rolePermissions = await permissionModel.find({ 
+        const rolePermissions = await permissionModel.find({
             roleId: targetUser.roleId,
-            isActive: true 
+            isActive: true
         }).populate('moduleId', 'tabName displayName tabUrl number parentId');
 
         // Get user-specific permissions
-        const userPermissions = await userModuleAccessModel.find({ 
+        const userPermissions = await userModuleAccessModel.find({
             userId: new ObjectId(userId),
             isDeleted: false,
             isActive: true,
@@ -381,12 +375,12 @@ export const get_users_module_access_summary = async (req, res) => {
 
         // Get module access count for each user
         const usersWithAccess = await Promise.all(users.map(async (userData: any) => {
-            const accessCount = await countData(userModuleAccessModel, { 
-                userId: userData._id, 
-                isDeleted: false, 
-                isActive: true 
+            const accessCount = await countData(userModuleAccessModel, {
+                userId: userData._id,
+                isDeleted: false,
+                isActive: true
             });
-            
+
             return {
                 ...userData,
                 moduleAccessCount: accessCount
