@@ -12,7 +12,7 @@ import {
 const ObjectId = require("mongoose").Types.ObjectId;
 
 // Grant module access to a specific user
-export const grant_user_module_access = async (req, res) => {
+export const add_user_module_access = async (req, res) => {
     reqInfo(req);
     const { user } = req.headers;
     try {
