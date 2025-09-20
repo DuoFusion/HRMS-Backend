@@ -19,6 +19,7 @@ import { projectRoutes } from './project'
 import { remarkRoutes } from './remark'
 import { seatRoutes } from './seat'
 import { notificationRoutes } from './notification'
+import { userModuleAccessRoutes } from './userModuleAccess'
 const router = Router()
 
 router.use('/auth', authRoutes)
@@ -41,5 +42,6 @@ router.use('/review', reviewRoutes)
 router.use('/remarks', remarkRoutes)
 router.use('/seat', seatRoutes)
 router.use('/notification', notificationRoutes)
+router.use('/user-module-access', userModuleAccessRoutes)
 
 export { router }
