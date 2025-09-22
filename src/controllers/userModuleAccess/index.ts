@@ -339,12 +339,11 @@ export const get_users_module_access_summary = async (req, res) => {
     reqInfo(req);
     const { user } = req.headers;
     try {
-        const { page = 1, limit = 10, search, roleFilter, companyFilter } = req.query;
+        const { search, roleFilter, companyFilter } = req.query;
 
         let criteria: any = { isDeleted: false };
         const options: any = { sort: { createdAt: -1 } };
 
-        // Apply role-based filtering
         if (user.role === ROLES.PROJECT_MANAGER || user.role === ROLES.EMPLOYEE) {
             criteria._id = new ObjectId(user._id);
         }
@@ -358,11 +357,6 @@ export const get_users_module_access_summary = async (req, res) => {
                 { email: { $regex: search, $options: 'si' } },
                 { department: { $regex: search, $options: 'si' } }
             ];
-        }
-
-        if (page && limit) {
-            options.skip = (parseInt(page) - 1) * parseInt(limit);
-            options.limit = parseInt(limit);
         }
 
         const populate = [
@@ -387,16 +381,9 @@ export const get_users_module_access_summary = async (req, res) => {
             };
         }));
 
-        const stateObj = {
-            page: parseInt(page) || 1,
-            limit: parseInt(limit) || totalCount,
-            page_limit: Math.ceil(totalCount / (parseInt(limit) || totalCount)) || 1,
-        };
-
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('users module access'), {
             users_data: usersWithAccess || [],
-            totalData: totalCount,
-            state: stateObj
+            totalData: totalCount
         }, {}));
     } catch (error) {
         console.log(error);
