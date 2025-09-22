@@ -124,11 +124,10 @@ export const get_all_module = async (req, res) => {
                 }
             },
         ])
-        if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("module"), {}, {}));
 
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('module'), {
-            module_data: response[0].data.sort((a, b) => a.number - b.number),
-            totalData: response[0].data_count[0].count || 0,
+            module_data: response[0]?.data?.sort((a, b) => a.number - b.number),
+            totalData: response[0]?.data_count[0]?.count || 0,
             state: {
                 page: page as number,
                 limit: limit as number,
