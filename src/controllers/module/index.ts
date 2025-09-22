@@ -86,6 +86,7 @@ export const get_all_module = async (req, res) => {
             ];
         }
         limit = parseInt(limit)
+        match.isDeleted = false;
         match.isBlocked = activeFilter ? activeFilter : false;
         let response = await aggregateData(moduleModel, [
             { $match: match },
