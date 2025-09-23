@@ -1,6 +1,6 @@
 import { reqInfo, responseMessage } from "../../helper";
 import { apiResponse } from "../../common";
-import { moduleModel, permissionModel } from "../../database";
+import { moduleModel, permissionModel, userModel } from "../../database";
 import { getFirstMatch, createData, updateData, getData, aggregateData, updateMany } from "../../helper/database_service";
 
 const ObjectId = require('mongoose').Types.ObjectId
@@ -37,7 +37,7 @@ export const edit_module_by_id = async (req, res) => {
     reqInfo(req)
     let body = req.body
     try {
-        let isExist = await getFirstMatch(moduleModel, { _id: new ObjectId(body._id) }, {}, {});
+        let isExist = await getFirstMatch(moduleModel, { _id: new ObjectId(body.moduleId) }, {}, {});
         if (!isExist) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("module"), {}, {}));
 
         let getAllModuleData = await getData(moduleModel, {}, {}, {});
@@ -51,7 +51,7 @@ export const edit_module_by_id = async (req, res) => {
             if (isNumberExist) return res.status(405).json(new apiResponse(405, responseMessage.dataAlreadyExist("module number"), {}, {}));
         }
 
-        const response = await updateData(moduleModel, { _id: new ObjectId(body._id) }, body, {});
+        const response = await updateData(moduleModel, { _id: new ObjectId(body.moduleId) }, body, {});
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("module"), {}, {}));
 
         return res.status(200).json(new apiResponse(200, responseMessage.updateDataSuccess("module"), response, {}));
@@ -67,7 +67,7 @@ export const delete_module_by_id = async (req, res) => {
     try {
         const response = await updateData(moduleModel, { _id: new ObjectId(id), isDeleted: false }, { isDeleted: true }, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("module"), {}, {}))
-        await updateMany(permissionModel, { moduleId: ObjectId(id), isDeleted: false }, { isDeleted: true }, {})
+        await updateMany(permissionModel, { moduleId: new ObjectId(id), isDeleted: false }, { isDeleted: true }, {})
 
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("module"), response, {}))
     } catch (error) {
@@ -87,7 +87,7 @@ export const get_all_module = async (req, res) => {
         }
         limit = parseInt(limit)
         match.isDeleted = false;
-        match.isBlocked = activeFilter ? activeFilter : false;
+        match.isActive = activeFilter ? activeFilter : true;
         let response = await aggregateData(moduleModel, [
             { $match: match },
             {
@@ -169,6 +169,57 @@ export const bulk_edit_module = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("tab master"), updatedTabs, {}));
     } catch (error) {
         console.log(error);
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
+    }
+}
+
+export const get_users_permissions_by_moduleId = async (req, res) => {
+    reqInfo(req)
+    const { moduleId } = req.query as any
+    try {
+        if (!moduleId) return res.status(400).json(new apiResponse(400, 'moduleId is required', {}, {}))
+
+        const module = await getFirstMatch(moduleModel, { _id: new ObjectId(moduleId), isDeleted: false }, {}, {})
+        if (!module) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('module'), {}, {}))
+
+        const users = await getData(userModel, { isDeleted: false }, { password: 0 }, {})
+        const userIds = users.map((u: any) => u._id)
+
+        const perms = await getData(
+            permissionModel,
+            { moduleId: new ObjectId(moduleId), userId: { $in: userIds }, isDeleted: false },
+            {},
+            {}
+        )
+
+        const userIdToPerm: Record<string, any> = {}
+        for (const p of perms) userIdToPerm[String(p.userId)] = p
+
+        const payload = users.map((u: any) => {
+            const p = userIdToPerm[String(u._id)]
+            const view = Boolean(module.hasView && p?.view)
+            const add = Boolean(module.hasAdd && p?.add)
+            const edit = Boolean(module.hasEdit && p?.edit)
+            const deleteFlag = Boolean(module.hasDelete && p?.delete)
+            const hasAccess = view || add || edit || deleteFlag
+            return {
+                _id: u._id,
+                fullName: u.fullName,
+                email: u.email,
+                role: u.role,
+                permissions: {
+                    view,
+                    add,
+                    edit,
+                    delete: deleteFlag,
+                    hasAccess,
+                }
+            }
+        })
+
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess('users permissions for module'), payload, {}))
+    } catch (error) {
+        console.log(error)
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
     }
 }

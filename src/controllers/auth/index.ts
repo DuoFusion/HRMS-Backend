@@ -77,49 +77,24 @@ export const login = async (req, res) => {
             role: user.role,
         };
 
-        let roleData = await roleModel.aggregate([
-            {
-                $match: {
-                    $expr: {
-                        $eq: [
-                            { $toUpper: "$name" },
-                            String(user.role).toUpperCase(),
-                        ],
-                    },
-                },
-            },
-        ]);
-        roleData = roleData[0];
-        let moduleData = [];
-        moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();
-        let response = { ...userResponse, roleData, moduleData }
-        if (response.roleData && response.roleData._id) {
-            let newRoleDetailData = [],
-                newRoleDetailObj: any = {};
-            const roleDetailData = await permissionModel.find({ roleId: new ObjectId(response.roleData._id) });
-            if (roleDetailData && roleDetailData.length > 0) {
-                moduleData.forEach((item) => {
-                    let roleDetail = roleDetailData?.find(
-                        (item2) =>
-                            item2.roleId.toString() === response.roleData._id.toString() &&
-                            item2.moduleId.toString() === item._id.toString(),
-                    );
-                    newRoleDetailObj = {
-                        hasView: roleDetail?.view || false,
-                        hasAdd: roleDetail?.add || false,
-                        hasEdit: roleDetail?.edit || false,
-                        hasDelete: roleDetail?.delete || false,
-                    };
+        let moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();
 
-                    newRoleDetailData.push({
-                        ...item,
-                        ...newRoleDetailObj,
-                    });
-                });
-            }
-            moduleData = newRoleDetailData;
-        }
-        return res.status(200).json(new apiResponse(200, 'Login successful', { ...response, moduleData, token }, {}));
+        const userPermissions = await permissionModel.find({ userId: new ObjectId(user._id), isDeleted: false }).lean();
+
+        const mergedModules = moduleData.map((mod) => {
+            const perm = userPermissions.find(p => p.moduleId?.toString() === mod._id?.toString());
+            return {
+                ...mod,
+                hasView: Boolean(mod.hasView && perm?.view),
+                hasAdd: Boolean(mod.hasAdd && perm?.add),
+                hasEdit: Boolean(mod.hasEdit && perm?.edit),
+                hasDelete: Boolean(mod.hasDelete && perm?.delete),
+            };
+        });
+
+        const response = { ...userResponse, moduleData: mergedModules };
+
+        return res.status(200).json(new apiResponse(200, 'Login successful', { ...response, token }, {}));
 
     } catch (error) {
         console.log('Login error:', error);

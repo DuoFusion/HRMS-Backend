@@ -1,39 +1,39 @@
 import { apiResponse } from "../../common";
 import { moduleModel, permissionModel } from "../../database";
 import { reqInfo, responseMessage } from "../../helper";
+import { updateData } from "../../helper/database_service";
 
 const ObjectId = require("mongoose").Types.ObjectId
 
 export const edit_permission_by_id = async (req, res) => {
     reqInfo(req)
-    let { modules, roleId } = req.body;
+    let { modules, userId } = req.body;
     try {
         let updatedRoleDetails: any = [];
-        for (let roleDetails of modules) {
-            let updateData = {
-                moduleId: new ObjectId(roleDetails._id),
-                add: roleDetails.add,
-                edit: roleDetails.edit,
-                view: roleDetails.view,
-                delete: roleDetails.delete,
-                isActive: roleDetails.isActive
-            }
+        for (let modulePermission of modules) {
+            const setData = {
+                moduleId: new ObjectId(modulePermission._id),
+                add: modulePermission.add,
+                edit: modulePermission.edit,
+                view: modulePermission.view,
+                delete: modulePermission.delete,
+            };
 
-            let updateRoleDetails = await permissionModel.findOneAndUpdate({ roleId: new ObjectId(roleId), moduleId: new ObjectId(roleDetails._id) }, updateData, { upsert: true, new: true });
-            updatedRoleDetails.push(updateRoleDetails);
+            const updated = await updateData(permissionModel, { userId: new ObjectId(userId), moduleId: new ObjectId(modulePermission._id) }, setData, { upsert: true });
+            updatedRoleDetails.push(updated);
         }
-        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("role details"), updatedRoleDetails, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("user permissions"), updatedRoleDetails, {}))
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
     }
 }
 
-export const get_permission_by_roleId = async (req, res) => {
-    let { roleId, search } = req.body, match: any = {};
+export const get_permission_by_userId = async (req, res) => {
+    let { userId, search } = req.body, match: any = {};
     try {
-        let roleDetailData = await permissionModel.find({ roleId: new ObjectId(roleId) });
-        if (!roleDetailData) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("role details"), {}, {}));
+        let userPermissionData = await permissionModel.find({ userId: new ObjectId(userId) });
+        if (!userPermissionData) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("user permissions"), {}, {}));
 
         if (search) {
             match.$or = [
@@ -59,7 +59,7 @@ export const get_permission_by_roleId = async (req, res) => {
                 $unwind: { path: "$modules", preserveNullAndEmptyArrays: true }
             },
         ])
-        let newRoleDetailData = [];
+        let newUserPermissionData = [];
         moduleData?.forEach(item => {
             let newObj = {
                 parentTab: item.modules !== null ? item.modules : {},
@@ -67,21 +67,19 @@ export const get_permission_by_roleId = async (req, res) => {
                 add: false,
                 edit: false,
                 delete: false,
-                isActive: false
             };
 
-            let roleDetail = roleDetailData?.find(item2 => item2.roleId.toString() == roleId.toString() && item2.moduleId.toString() == item._id.toString() && item.isActive == true);
-            if (roleDetail) {
-                newObj.view = roleDetail.view;
-                newObj.add = roleDetail.add;
-                newObj.edit = roleDetail.edit;
-                newObj.delete = roleDetail.delete;
-                newObj.isActive = roleDetail.isActive;
+            let permission = userPermissionData?.find(item2 => item2.userId.toString() == userId.toString() && item2.moduleId.toString() == item._id.toString() && item.isActive == true);
+            if (permission) {
+                newObj.view = permission.view;
+                newObj.add = permission.add;
+                newObj.edit = permission.edit;
+                newObj.delete = permission.delete;
             }
-            newRoleDetailData.push({ ...item, ...newObj });
+            newUserPermissionData.push({ ...item, ...newObj });
         });
 
-        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("role details"), newRoleDetailData.sort((a, b) => a.number - b.number), {}));
+        return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("user permissions"), newUserPermissionData.sort((a, b) => a.number - b.number), {}));
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));

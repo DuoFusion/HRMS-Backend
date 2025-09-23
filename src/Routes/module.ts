@@ -11,5 +11,6 @@ router.delete("/:id", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.delete_modu
 router.get("/all", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.get_all_module)
 router.get("/:id", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.get_by_id_module)
 router.post("/bulk/edit", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.bulk_edit_module)
+router.get("/user/permissions", VALIDATE_ROLE([ROLES.ADMIN]), moduleController.get_users_permissions_by_moduleId)
 
 export const moduleRoutes = router;
