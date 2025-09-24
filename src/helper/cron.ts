@@ -113,27 +113,3 @@ export const dailyAttendanceStatusJob = new CronJob('*/30 * * * * *', async func
 		console.error('Error in daily attendance status job:', error);
 	}
 }, null, false, 'Asia/Kolkata');
-
-// Daily 9 AM IST birthday notification
-export const dailyBirthdayNotificationJob = new CronJob('0 0 9 * * *', async function () {
-    try {
-        const today = new Date();
-        const mm = today.getUTCMonth();
-        const dd = today.getUTCDate();
-        const users = await userModel.find({ dob: { $ne: null }, isDeleted: false, isBlocked: false }).lean();
-        for (const u of users) {
-            if (!u.dob) continue;
-            const d = new Date(u.dob);
-            if (d.getUTCMonth() === mm && d.getUTCDate() === dd) {
-                try {
-                    await send_real_time_update([String(u._id)], {
-                        eventType: SOCKET_EVENT.BIRTHDAY_TODAY,
-                        data: { userId: String(u._id), fullName: u.fullName }
-                    });
-                } catch (e) { }
-            }
-        }
-    } catch (error) {
-        console.log(error);
-    }
-}, null, false, 'Asia/Kolkata');

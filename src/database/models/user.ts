@@ -3,6 +3,7 @@ import { ROLES, RELATION } from "../../common";
 
 const userSchema: any = new mongoose.Schema({
     firstName: { type: String },
+    middleName: { type: String },
     lastName: { type: String },
     fullName: { type: String },
     email: { type: String },
