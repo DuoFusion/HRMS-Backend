@@ -6,7 +6,7 @@ import { permissionController } from "../controllers";
 const router = Router();
 
 router.use(adminJWT)
-router.post("/edit", VALIDATE_ROLE([ROLES.ADMIN]), permissionController.edit_permission_by_id)
-router.post("/details", VALIDATE_ROLE([ROLES.ADMIN, ROLES.EMPLOYEE]), permissionController.get_permission_by_userId)
+router.post("/edit", VALIDATE_ROLE([ROLES.SUPER_ADMIN, ROLES.ADMIN]), permissionController.edit_permission_by_id)
+router.get("/details", VALIDATE_ROLE([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE]), permissionController.get_permission_by_userId)
 
 export const permissionRoutes = router

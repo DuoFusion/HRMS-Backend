@@ -30,7 +30,7 @@ export const edit_permission_by_id = async (req, res) => {
 }
 
 export const get_permission_by_userId = async (req, res) => {
-    let { userId, search } = req.body, match: any = {};
+    let { userId, search } = req.query, match: any = {};
     try {
         let userPermissionData = await permissionModel.find({ userId: new ObjectId(userId) });
         if (!userPermissionData) return res.status(405).json(new apiResponse(405, responseMessage.getDataNotFound("user permissions"), {}, {}));

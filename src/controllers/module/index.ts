@@ -1,7 +1,7 @@
 import { reqInfo, responseMessage } from "../../helper";
 import { apiResponse } from "../../common";
 import { moduleModel, permissionModel, userModel } from "../../database";
-import { getFirstMatch, createData, updateData, getData, aggregateData, updateMany } from "../../helper/database_service";
+import { getFirstMatch, createData, updateData, getData, aggregateData, updateMany, deleteMany } from "../../helper/database_service";
 
 const ObjectId = require('mongoose').Types.ObjectId
 
@@ -67,8 +67,8 @@ export const delete_module_by_id = async (req, res) => {
     try {
         const response = await updateData(moduleModel, { _id: new ObjectId(id), isDeleted: false }, { isDeleted: true }, {})
         if (!response) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("module"), {}, {}))
-        await updateMany(permissionModel, { moduleId: new ObjectId(id), isDeleted: false }, { isDeleted: true }, {})
-
+        await deleteMany(permissionModel, { moduleId: new ObjectId(id), isDeleted: false }, {})
+        
         return res.status(200).json(new apiResponse(200, responseMessage?.deleteDataSuccess("module"), response, {}))
     } catch (error) {
         console.log(error);
