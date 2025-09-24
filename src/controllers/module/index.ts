@@ -165,6 +165,7 @@ export const bulk_edit_permissions_by_module = async (req, res) => {
         for (let user of users) {
             const setData = {
                 moduleId: new ObjectId(moduleId),
+                userId: new ObjectId(user._id),
                 add: user.permissions?.add || false,
                 edit: user.permissions?.edit || false,
                 view: user.permissions?.view || false,
