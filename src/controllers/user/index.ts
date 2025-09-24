@@ -17,7 +17,7 @@ export const add_user = async (req, res) => {
         isExist = await getFirstMatch(userModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("Phone Number"), {}, {}));
 
-        value.fullName = value.firstName + " " + value.lastName
+        value.fullName = value.firstName + " " + value.middleName + " " + value.lastName
 
         if (value.role) {
             let role = await getFirstMatch(roleModel, { name: value.role, isDeleted: false }, {}, {});
@@ -70,11 +70,19 @@ export const edit_user_by_id = async (req, res) => {
             value.roleId = new ObjectId(role._id)
         }
 
-        if (value.firstName) value.fullName = value.firstName + " " + user.lastName
+        if (value.firstName) value.fullName = value.firstName + " " + user.middleName + " " + user.lastName
 
-        if (value.lastName) value.fullName = user.firstName + " " + value.lastName
+        if (value.middleName) value.fullName = user.firstName + " " + value.middleName + " " + user.lastName
+        
+        if (value.lastName) value.fullName = user.firstName + " " + user.middleName + " " + value.lastName
 
-        if (value.firstName && value.lastName) value.fullName = value.firstName + " " + value.lastName
+        if (value.firstName && value.middleName) value.fullName = value.firstName + " " + value.middleName + " " + user.lastName
+
+        if (value.firstName && value.lastName) value.fullName = value.firstName + " " + user.middleName + " " + value.lastName
+        
+        if (value.middleName && value.lastName) user.fullName = value.firstName + " " + value.middleName + " " + value.lastName
+
+        if (value.firstName && value.middleName && value.lastName) value.fullName = value.firstName + " " + value.middleName + " " + value.lastName
 
         const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value, { new: true });
         return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("User"), response, {}));
