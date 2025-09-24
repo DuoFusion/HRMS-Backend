@@ -155,18 +155,31 @@ export const get_by_id_module = async (req, res) => {
     }
 }
 
-export const bulk_edit_module = async (req, res) => {
+export const bulk_edit_permissions_by_module = async (req, res) => {
     reqInfo(req)
-    let { tabs } = req.body
+    let { moduleId, users } = req.body;
     try {
-        let updatedTabs: any = [];
-        for (let tab of tabs) {
-            let updatedTab = await updateData(moduleModel, { _id: new ObjectId(tab._id) }, tab, {});
-            updatedTabs.push(updatedTab);
-        }
-        if (!updatedTabs) return res.status(404).json(new apiResponse(404, responseMessage?.updateDataError("tab master"), {}, {}))
+        if (!moduleId) return res.status(400).json(new apiResponse(400, 'moduleId is required', {}, {}));
 
-        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("tab master"), updatedTabs, {}));
+        let updatedPermissions: any = [];
+        for (let user of users) {
+            const setData = {
+                moduleId: new ObjectId(moduleId),
+                add: user.permissions?.add || false,
+                edit: user.permissions?.edit || false,
+                view: user.permissions?.view || false,
+                delete: user.permissions?.delete || false,
+            };
+
+            const updated = await updateData(
+                permissionModel,
+                { userId: new ObjectId(user._id), moduleId: new ObjectId(moduleId) },
+                setData,
+                { upsert: true }
+            );
+            updatedPermissions.push(updated);
+        }
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("bulk user permissions"), updatedPermissions, {}))
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
