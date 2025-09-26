@@ -4,6 +4,7 @@ const moduleSchema: any = new mongoose.Schema({
     tabName: { type: String },
     displayName: { type: String, default: null },
     tabUrl: { type: String },
+    icon: { type: String },
     number: { type: Number, default: 0 },
     hasView: { type: Boolean, default: false },
     hasAdd: { type: Boolean, default: false },
