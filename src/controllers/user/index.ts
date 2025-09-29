@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { apiResponse, ROLES } from '../../common';
-import { countData, createData, findAllWithPopulateWithSorting, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { countData, createData, findAllWithPopulateWithSorting, getData, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData, updateMany } from '../../helper';
 import { roleModel, seatModel, userModel } from '../../database';
-import { addUserSchema, deleteUserSchema, editUserSchema, getAllUserSchema, getUserListSchema, getUserSchema } from '../../validation';
+import { addUserSchema, deleteUserSchema, editUserSchema, getAllUserSchema, getUserListSchema, getUserSchema, updateAllUserTimeSchema } from '../../validation';
 const ObjectId = require("mongoose").Types.ObjectId
 
 export const add_user = async (req, res) => {
@@ -73,13 +73,13 @@ export const edit_user_by_id = async (req, res) => {
         if (value.firstName) value.fullName = value.firstName + " " + user.middleName + " " + user.lastName
 
         if (value.middleName) value.fullName = user.firstName + " " + value.middleName + " " + user.lastName
-        
+
         if (value.lastName) value.fullName = user.firstName + " " + user.middleName + " " + value.lastName
 
         if (value.firstName && value.middleName) value.fullName = value.firstName + " " + value.middleName + " " + user.lastName
 
         if (value.firstName && value.lastName) value.fullName = value.firstName + " " + user.middleName + " " + value.lastName
-        
+
         if (value.middleName && value.lastName) user.fullName = value.firstName + " " + value.middleName + " " + value.lastName
 
         if (value.firstName && value.middleName && value.lastName) value.fullName = value.firstName + " " + value.middleName + " " + value.lastName
@@ -203,6 +203,27 @@ export const get_all_user_list = async (req, res) => {
         return res.status(200).json(new apiResponse(200, responseMessage?.getDataSuccess("User"), response, {}));
     } catch (error) {
         console.log(error)
+        return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
+    }
+}
+
+export const bulk_update_all_users = async (req, res) => {
+    reqInfo(req)
+    try {
+        const { error, value } = updateAllUserTimeSchema.validate(req.body)
+        if (error) return res.status(501).json(new apiResponse(501, error?.details[0]?.message, {}, {}))
+
+        const { userIds } = value;
+
+        const validUserIds = userIds.map(id => new ObjectId(id));
+
+        const response = await updateMany(userModel, { _id: { $in: validUserIds }, isDeleted: false, isBlocked: false }, value);
+
+        if (!response || response.modifiedCount === 0) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound("User"), {}, {}));
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess("Users"), {}, {}));
+
+    } catch (error) {
+        console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error));
     }
 }

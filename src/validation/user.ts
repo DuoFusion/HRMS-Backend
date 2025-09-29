@@ -100,3 +100,18 @@ export const getAllUserSchema = Joi.object().keys({
 export const getUserListSchema = Joi.object().keys({
     isAdminShow: Joi.boolean().optional(),
 });
+
+export const updateAllUserTimeSchema = Joi.object().keys({
+    userIds: Joi.array().items(Joi.string().required()).min(1).required(),
+    workingTime: Joi.object({
+        start: Joi.string().optional(),
+        end: Joi.string().optional()
+    }).required().custom((value, helpers) => {
+        if (!value.start && !value.end) {
+            return helpers.error('custom.atLeastOneRequired');
+        }
+        return value;
+    }).messages({
+        'custom.atLeastOneRequired': 'At least one of start or end time is required'
+    }),
+});
