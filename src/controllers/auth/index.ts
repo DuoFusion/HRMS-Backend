@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../../config';
 import { apiResponse, getUniqueOtp, ROLES } from '../../common';
-import { createData, deleteOne, email_verification_mail, findAllWithPopulateWithSorting, getDataWithSorting, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
-import { moduleModel, permissionModel, roleModel, userModel, userSessionModel } from '../../database';
+import { createData, deleteOne, email_verification_mail, getData, getFirstMatch, reqInfo, responseMessage, updateData } from '../../helper';
+import { moduleModel, permissionModel, userModel, userSessionModel } from '../../database';
 import { forgotPasswordSchema, loginSchema, otpVerifySchema, resetPasswordAdminSchema, resetPasswordSchema } from '../../validation';
 
 const ObjectId = require("mongoose").Types.ObjectId
@@ -59,11 +59,11 @@ export const login = async (req, res) => {
 
         const token = generateToken(user._id.toString(), user.role);
 
-        const activeSession = await deleteOne(userSessionModel, { userId: user._id, isActive: true }, { sort: { createAt: 1 } });
-
-        if (activeSession.length >= 3) {
-            let oldestSession = activeSession[0];
-            await userSessionModel.updateData({ _id: oldestSession._id }, { idActive: false });
+        const activeSessions = await getData(userSessionModel, { userId: user._id, isActive: true }, { sort: { createAt: 1 } });
+        
+        if (activeSessions.length >= 3) {
+            let oldestSession = activeSessions[0];
+            await deleteOne(userSessionModel, { _id: new ObjectId(oldestSession._id) });
         }
 
         await userSessionModel.create({ userId: user._id, token, isActive: true })

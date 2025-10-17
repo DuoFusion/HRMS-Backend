@@ -17,7 +17,7 @@ export const add_user = async (req, res) => {
         isExist = await getFirstMatch(userModel, { phoneNumber: value.phoneNumber, isDeleted: false }, {}, {});
         if (isExist) return res.status(400).json(new apiResponse(400, responseMessage?.dataAlreadyExist("Phone Number"), {}, {}));
 
-        value.fullName = value.firstName + " " + value.middleName + " " + value.lastName
+        value.fullName = value.firstName + " " + value.lastName
 
         if (value.role) {
             let role = await getFirstMatch(roleModel, { name: value.role, isDeleted: false }, {}, {});
