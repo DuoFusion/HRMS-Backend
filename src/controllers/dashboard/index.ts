@@ -39,7 +39,12 @@ export const upcoming_birthday_data_all_user = async () => {
         const currentDay = today.getDate();
 
         return await userModel.aggregate([
-            // Convert DOB to IST in two steps
+            {
+                $match: {
+                    isDeleted: false,
+                    isBlocked: false
+                }
+            },
             {
                 $addFields: {
                     dobIST: {
