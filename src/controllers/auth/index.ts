@@ -254,6 +254,9 @@ export const reset_password = async (req, res) => {
             delete value.newPassword
             value.password = hashPassword
         }
+        const response = await updateData(userModel, { _id: new ObjectId(value.userId), isDeleted: false }, value);
+        if (!response) return res.status(405).json(new apiResponse(405, responseMessage?.updateDataError('admin'), {}, {}))
+        return res.status(200).json(new apiResponse(200, responseMessage?.updateDataSuccess('admin'), response, {}))
     } catch (error) {
         console.log(error);
         return res.status(500).json(new apiResponse(500, responseMessage?.internalServerError, {}, error))
