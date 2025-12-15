@@ -9,4 +9,12 @@ mongoose.connect(
     dbUrl, { serverSelectionTimeoutMS: 30000,  socketTimeoutMS: 45000, connectTimeoutMS: 30000 }
 ).then(() => console.log('Database successfully connected')).catch(err => console.log(err));
 
+mongoose.connection.on('error', (err) => {
+    console.error('MongoDB runtime error:', err)
+  })
+  
+  mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected')
+  })
+
 export { mongooseConnection }
