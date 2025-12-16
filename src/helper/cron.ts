@@ -2,8 +2,6 @@ import { CronJob } from 'cron';
 import { invoiceModel, userModel, attendanceModel, holidayModel, leaveModel } from "../database";
 import { calculateMonthlySalaryForUser, getNextInvoiceNumber, getPreviousMonthRange, makeSalaryServiceLine, computeInvoiceTotals } from "./salary";
 import { ATTENDANCE_STATUS, LEAVE_STATUS, ROLES } from '../common';
-import { send_real_time_update } from './socket';
-import { SOCKET_EVENT } from './socket_events';
 
 export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function () {
 	try {
@@ -38,7 +36,7 @@ export const monthlySalaryInvoiceJob = new CronJob('0 0 1 * *', async function (
 	}
 }, null, false, 'Asia/Kolkata');
 
-export const dailyAttendanceStatusJob = new CronJob('0 0 * * *', async function () {
+export const dailyAttendanceStatusJob = new CronJob('*/60 * * * * *', async function () {
 	try {
 		const today = new Date();
 		today.setDate(today.getDate())
