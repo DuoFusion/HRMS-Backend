@@ -52,11 +52,6 @@ app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }))
 app.use(express.static(path.join(__dirname, "public")));
 app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
 
-app.use(cors())
-app.use(mongooseConnection)
-app.use(bodyParser.json({ limit: '200mb' }))
-app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }))
-
 const health = (req, res) => {
     return res.status(200).json({
         success: true,
