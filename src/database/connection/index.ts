@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { config } from "../../../config";
 
 const dbUrl: string = config.DB_URL;
-console.log('dbUrl => ',dbUrl);
+
 mongoose.set("strictQuery", false);
 mongoose.set("bufferCommands", false);
 mongoose.set("bufferTimeoutMS", 0);
