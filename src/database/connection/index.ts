@@ -15,6 +15,10 @@ export const connectDB = async () => {
       socketTimeoutMS: 45000,
       heartbeatFrequencyMS: 10000,
       connectTimeoutMS: 30000,
+
+      family: 4,              // 🔥 FORCE IPV4
+      retryWrites: true,
+      tls: true
     });
 
     console.log("✅ Database successfully connected");
