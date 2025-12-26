@@ -1,26 +1,41 @@
-require('dotenv').config()
-import mongoose from 'mongoose';
-import express from 'express'
-import { config } from '../../../config';
-const dbUrl: any = config.DB_URL;
-const mongooseConnection = express()
-mongoose.set('strictQuery', false)
-mongoose.connect(
-    dbUrl, {
+import mongoose from "mongoose";
+import { config } from "../../../config";
+
+const dbUrl: string = config.DB_URL;
+console.log('dbUrl => ',dbUrl);
+mongoose.set("strictQuery", false);
+mongoose.set("bufferCommands", false);
+mongoose.set("bufferTimeoutMS", 0);
+
+export const connectDB = async () => {
+  try {
+    await mongoose.connect(dbUrl, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       heartbeatFrequencyMS: 10000,
-      connectTimeoutMS: 30000
-    }
-).then(() => console.log('Database successfully connected')).catch(err => console.log(err));
+      connectTimeoutMS: 30000,
+    });
 
-mongoose.connection.on('error', (err) => {
-    console.error('MongoDB runtime error:', err)
-  })
-  
-  mongoose.connection.on('disconnected', () => {
-    console.warn('MongoDB disconnected')
-  })
+    console.log("✅ Database successfully connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection failed", err);
+    process.exit(1);
+  }
+};
 
-export { mongooseConnection }
+mongoose.connection.on("connected", () => {
+  console.log("🟢 MongoDB connected");
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.error("🔴 MongoDB disconnected");
+});
+
+mongoose.connection.on("reconnected", () => {
+  console.log("🟡 MongoDB reconnected");
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("❌ MongoDB runtime error:", err);
+});
