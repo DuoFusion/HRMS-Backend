@@ -6,7 +6,7 @@ const dbUrl: any = config.DB_URL;
 const mongooseConnection = express()
 mongoose.set('strictQuery', false)
 mongoose.connect(
-    dbUrl, { serverSelectionTimeoutMS: 30000,  socketTimeoutMS: 45000, connectTimeoutMS: 30000 }
+    dbUrl,
 ).then(() => console.log('Database successfully connected')).catch(err => console.log(err));
 
 mongoose.connection.on('error', (err) => {
