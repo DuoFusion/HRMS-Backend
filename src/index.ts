@@ -1,8 +1,7 @@
-import 'dotenv/config';
 import * as bodyParser from 'body-parser'
 import express from 'express'
 import cors from 'cors'
-import { connectDB } from './database'
+import { mongooseConnection } from './database'
 import * as packageInfo from '../package.json'
 import { router } from './Routes'
 import fs from 'fs'
@@ -46,6 +45,12 @@ const fileStorage = multer.diskStorage({
         cb(null, `${Date.now()}_${sanitizedOriginalName}`);
     },
 });
+app.use(cors())
+app.use(mongooseConnection)
+app.use(bodyParser.json({ limit: '200mb' }))
+app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }))
+app.use(express.static(path.join(__dirname, "public")));
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
 
 const health = (req, res) => {
     return res.status(200).json({
@@ -62,27 +67,17 @@ const health = (req, res) => {
 
 const bad_gateway = (req, res) => { return res.status(502).json({ success: false, message: "HRMS Backend API Bad Gateway" }) }
 
-(async () => {
-    await connectDB();
-  
-    app.use(cors());
-    app.use(bodyParser.json({ limit: "200mb" }));
-    app.use(bodyParser.urlencoded({ limit: "200mb", extended: true }));
-  
-    app.use(express.static(path.join(__dirname, "public")));
-    app.use(multer({ storage: fileStorage, fileFilter }).single("image"));
-  
-    app.get("/", health);
-    app.get("/health", health);
-    app.get("/isServerUp", (_, res) => res.send("Server is running"));
-  
-    app.use(router);
-    app.use("*", bad_gateway);
-  
-    // 🔥 RUN SEED ONLY AFTER DB CONNECT
-    await seedAdminUser();
-    monthlySalaryInvoiceJob.start();
-    dailyAttendanceStatusJob.start();
-  
-  })();
+app.get('/', health);
+app.get('/health', health);
+app.get('/isServerUp', (req, res) => {
+    res.send('Server is running ');
+});
+
+app.use(router)
+app.use('*', bad_gateway);
+
+seedAdminUser();
+monthlySalaryInvoiceJob.start();
+dailyAttendanceStatusJob.start();
+
 export default socketServer(app);
