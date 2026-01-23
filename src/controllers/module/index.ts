@@ -196,7 +196,7 @@ export const get_users_permissions_by_moduleId = async (req, res) => {
         const module = await getFirstMatch(moduleModel, { _id: new ObjectId(moduleId), isDeleted: false }, {}, {})
         if (!module) return res.status(404).json(new apiResponse(404, responseMessage?.getDataNotFound('module'), {}, {}))
 
-        const users = await getData(userModel, { isDeleted: false }, { password: 0 }, {})
+        const users = await getData(userModel, { isDeleted: false, isBlocked: false }, { password: 0 }, {})
         const userIds = users.map((u: any) => u._id)
 
         const perms = await getData(
