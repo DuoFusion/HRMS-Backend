@@ -75,6 +75,7 @@ export const login = async (req, res) => {
             fullName: user.fullName,
             email: user.email,
             role: user.role,
+            companyId: user?.companyId,
         };
 
         let moduleData = await moduleModel.find({ isActive: true }).sort({ number: 1 }).lean();

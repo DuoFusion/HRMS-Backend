@@ -219,13 +219,16 @@ export const task_data_per_day = async (user) => {
 
 export const leave_data_approve_by_admin = async () => {
     try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         return await leaveModel.aggregate([
             {
                 $match: {
                     isDeleted: false,
                     isBlocked: false,
                     status: LEAVE_STATUS.APPROVED,
-                    endDate: { $gte: new Date() }
+                    endDate: { $gte: today }
                 }
             },
             {
